@@ -1,0 +1,1214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AKRS v3 — Knowledge System</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.development.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.development.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#09090b; --s0:#0f0f11; --s1:#141418; --s2:#1a1a20; --s3:#22222a;
+  --b0:#2a2a35; --b1:#35353f; --b2:#45454f;
+  --t0:#fafafa; --t1:#a1a1aa; --t2:#71717a; --t3:#52525b;
+  --ac:#e4ff1a; --ac2:#c8e800; --acd:rgba(228,255,26,.1); --acb:rgba(228,255,26,.06);
+  --bl:#3b82f6; --bld:rgba(59,130,246,.12);
+  --gn:#22c55e; --gnd:rgba(34,197,94,.12);
+  --rd:#ef4444; --rdd:rgba(239,68,68,.12);
+  --or:#f97316; --ord:rgba(249,115,22,.12);
+  --pu:#a855f7; --pud:rgba(168,85,247,.12);
+  --cy:#06b6d4; --cyd:rgba(6,182,212,.12);
+  --mono:'DM Mono',monospace; --sans:'Syne',sans-serif;
+  --r:5px; --rl:10px; --rxl:16px;
+}
+[data-theme=light] {
+  --bg:#f4f4f5; --s0:#ffffff; --s1:#fafafa; --s2:#f4f4f5; --s3:#eeeeef;
+  --b0:#e4e4e7; --b1:#d4d4d8; --b2:#a1a1aa;
+  --t0:#09090b; --t1:#3f3f46; --t2:#71717a; --t3:#a1a1aa;
+  --acd:rgba(228,255,26,.15); --acb:rgba(228,255,26,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-font-smoothing:antialiased}
+body{background:var(--bg);color:var(--t0);font-family:var(--sans);font-size:14px;line-height:1.5;overflow-x:hidden}
+::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--b1);border-radius:2px}
+
+/* ── LAYOUT ── */
+.shell{display:flex;height:100vh;overflow:hidden}
+.rail{width:56px;min-width:56px;background:var(--s0);border-right:1px solid var(--b0);display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:2px;z-index:10}
+.sidebar{width:220px;min-width:220px;background:var(--s1);border-right:1px solid var(--b0);display:flex;flex-direction:column;overflow:hidden;transition:width .2s}
+.sidebar.collapsed{width:0;min-width:0;border:none}
+.main{flex:1;overflow-y:auto;min-width:0;background:var(--bg)}
+.content{padding:28px 32px;max-width:1280px}
+
+/* ── RAIL ICONS ── */
+.ri{width:38px;height:38px;border-radius:var(--r);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--t2);font-size:17px;transition:all .15s;position:relative}
+.ri:hover{background:var(--s2);color:var(--t0)}
+.ri.on{background:var(--acd);color:var(--ac)}
+.ri .tip{position:absolute;left:calc(100% + 8px);background:var(--s3);border:1px solid var(--b0);color:var(--t0);font-size:11px;white-space:nowrap;padding:4px 9px;border-radius:var(--r);pointer-events:none;opacity:0;transition:opacity .15s;font-family:var(--mono);z-index:999}
+.ri:hover .tip{opacity:1}
+.rail-sep{width:26px;height:1px;background:var(--b0);margin:6px 0}
+.rail-logo{width:38px;height:38px;background:var(--ac);border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;font-weight:500;color:#000;margin-bottom:8px;letter-spacing:.05em;cursor:pointer}
+
+/* ── SIDEBAR ── */
+.sb-head{padding:14px 14px 10px;border-bottom:1px solid var(--b0)}
+.sb-title{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--t2);font-family:var(--mono)}
+.sb-list{padding:8px 8px;flex:1;overflow-y:auto}
+.sbi{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:var(--r);cursor:pointer;color:var(--t1);font-size:13px;transition:all .1s;user-select:none;position:relative}
+.sbi:hover{background:var(--s2);color:var(--t0)}
+.sbi.on{background:var(--acb);color:var(--ac);font-weight:600}
+.sbi .fdot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.sbi .badge{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--t3);background:var(--s3);padding:1px 6px;border-radius:10px}
+.sbi.on .badge{background:var(--acd);color:var(--ac)}
+.sb-sec{font-family:var(--mono);font-size:9px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);padding:12px 8px 4px}
+
+/* ── TOPBAR ── */
+.topbar{display:flex;align-items:center;gap:12px;padding:16px 32px;border-bottom:1px solid var(--b0);background:var(--s0);position:sticky;top:0;z-index:50}
+.page-title{font-size:17px;font-weight:700;letter-spacing:-.02em;flex:1}
+.search-wrap{flex:1;max-width:480px;position:relative}
+.search-inp{width:100%;background:var(--s2);border:1px solid var(--b0);border-radius:var(--r);padding:8px 36px 8px 36px;color:var(--t0);font-family:var(--sans);font-size:13px;outline:none;transition:border-color .15s}
+.search-inp:focus{border-color:var(--ac);background:var(--s1)}
+.search-ico{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--t2);pointer-events:none;font-size:14px}
+.search-kbd{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:9px;color:var(--t3);background:var(--s3);border:1px solid var(--b0);padding:2px 5px;border-radius:3px}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:var(--r);border:none;cursor:pointer;font-family:var(--sans);font-size:13px;font-weight:600;transition:all .12s;white-space:nowrap}
+.btn-primary{background:var(--ac);color:#000}.btn-primary:hover{background:var(--ac2)}
+.btn-ghost{background:transparent;color:var(--t1);border:1px solid var(--b0)}.btn-ghost:hover{background:var(--s2);color:var(--t0)}
+.btn-danger{background:var(--rdd);color:var(--rd);border:1px solid rgba(239,68,68,.2)}.btn-danger:hover{background:rgba(239,68,68,.22)}
+.btn-success{background:var(--gnd);color:var(--gn);border:1px solid rgba(34,197,94,.2)}
+.btn-sm{padding:5px 10px;font-size:12px}.btn-xs{padding:3px 7px;font-size:11px}
+.btn-icon{width:32px;height:32px;padding:0;justify-content:center;border-radius:var(--r)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* ── CARDS ── */
+.card{background:var(--s1);border:1px solid var(--b0);border-radius:var(--rl);padding:20px}
+.doc-card{background:var(--s1);border:1px solid var(--b0);border-radius:var(--rl);padding:16px;cursor:pointer;transition:all .15s;position:relative}
+.doc-card:hover{border-color:var(--b1);background:var(--s2);transform:translateY(-1px);box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.doc-card.selected{border-color:var(--ac);background:var(--acd)}
+.doc-card.tombstone{opacity:.4;border-style:dashed}
+.doc-card.pinned::after{content:'📌';position:absolute;top:10px;right:12px;font-size:11px}
+
+/* ── GRID LAYOUTS ── */
+.grid-docs{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.grid-files{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
+.grid-stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+.list-view{display:flex;flex-direction:column;gap:6px}
+
+/* ── STAT CARDS ── */
+.stat-card{background:var(--s1);border:1px solid var(--b0);border-radius:var(--rl);padding:16px}
+.stat-val{font-family:var(--mono);font-size:28px;font-weight:500;line-height:1;margin-bottom:4px}
+.stat-label{font-size:11px;color:var(--t2);font-weight:500;letter-spacing:.04em}
+.stat-sub{font-family:var(--mono);font-size:10px;color:var(--t3);margin-top:2px}
+.c-ac .stat-val{color:var(--ac)} .c-gn .stat-val{color:var(--gn)}
+.c-bl .stat-val{color:var(--bl)} .c-pu .stat-val{color:var(--pu)}
+.c-or .stat-val{color:var(--or)} .c-cy .stat-val{color:var(--cy)}
+
+/* ── TAGS ── */
+.tag{display:inline-flex;align-items:center;gap:2px;padding:2px 7px;border-radius:4px;font-family:var(--mono);font-size:11px;font-weight:400}
+.tag-user{background:var(--bld);color:var(--bl)}
+.tag-ai{background:var(--pud);color:var(--pu)}
+.tag-file{background:var(--gnd);color:var(--gn)}
+.tag-warn{background:var(--ord);color:var(--or)}
+.tag-status{padding:2px 8px;border-radius:4px;font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.04em}
+.s-todo{background:var(--s3);color:var(--t2)}
+.s-prog{background:var(--bld);color:var(--bl)}
+.s-review{background:var(--ord);color:var(--or)}
+.s-done{background:var(--gnd);color:var(--gn)}
+
+/* ── STORAGE BADGES ── */
+.store-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:4px;font-family:var(--mono);font-size:10px;font-weight:500}
+.sb-local{background:rgba(34,197,94,.12);color:var(--gn);border:1px solid rgba(34,197,94,.2)}
+.sb-github{background:rgba(250,250,250,.07);color:var(--t1);border:1px solid var(--b0)}
+.sb-drive{background:rgba(59,130,246,.12);color:var(--bl);border:1px solid rgba(59,130,246,.2)}
+.sb-off{background:var(--s3);color:var(--t3);border:1px solid var(--b0)}
+
+/* ── TOGGLE ── */
+.toggle{width:38px;height:20px;background:var(--s3);border-radius:10px;position:relative;cursor:pointer;transition:background .2s;border:1px solid var(--b0);flex-shrink:0}
+.toggle.on{background:var(--ac);border-color:var(--ac)}
+.toggle::after{content:'';position:absolute;width:14px;height:14px;background:#fff;border-radius:50%;top:2px;left:2px;transition:left .2s}
+.toggle.on::after{left:20px;background:#000}
+
+/* ── STORAGE PANEL ── */
+.storage-panel{background:var(--s1);border:1px solid var(--b0);border-radius:var(--rl);overflow:hidden}
+.storage-backend{padding:16px 20px;border-bottom:1px solid var(--b0);display:flex;align-items:flex-start;gap:14px}
+.storage-backend:last-child{border-bottom:none}
+.sb-icon{width:40px;height:40px;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.sb-info{flex:1}
+.sb-name{font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px;margin-bottom:2px}
+.sb-desc{font-size:12px;color:var(--t2);line-height:1.5}
+.sb-meta{font-family:var(--mono);font-size:10px;color:var(--t3);margin-top:4px}
+
+/* ── MODAL ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(6px)}
+.modal{background:var(--s1);border:1px solid var(--b1);border-radius:var(--rxl);width:100%;max-width:720px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 32px 96px rgba(0,0,0,.6)}
+.modal-lg{max-width:920px} .modal-sm{max-width:440px}
+.modal-head{padding:16px 20px 14px;border-bottom:1px solid var(--b0);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.modal-title{font-size:15px;font-weight:700}
+.modal-body{padding:20px;overflow-y:auto;flex:1}
+.modal-foot{padding:12px 20px;border-top:1px solid var(--b0);display:flex;justify-content:flex-end;gap:8px;flex-shrink:0}
+
+/* ── FORMS ── */
+.fg{margin-bottom:14px}
+.fl{font-size:11px;font-weight:600;color:var(--t1);margin-bottom:5px;display:block;letter-spacing:.04em;text-transform:uppercase;font-family:var(--mono)}
+.fi{width:100%;background:var(--s2);border:1px solid var(--b0);border-radius:var(--r);padding:9px 11px;color:var(--t0);font-family:var(--sans);font-size:13px;outline:none;transition:border-color .15s}
+.fi:focus{border-color:var(--ac)} .fi-mono{font-family:var(--mono);font-size:12px}
+.fta{resize:vertical;min-height:140px;line-height:1.6}
+.fr2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fhelp{font-size:11px;color:var(--t3);margin-top:3px;font-family:var(--mono)}
+
+/* ── TAG INPUT ── */
+.tag-wrap{display:flex;flex-wrap:wrap;gap:5px;background:var(--s2);border:1px solid var(--b0);border-radius:var(--r);padding:7px;cursor:text;min-height:38px;align-items:center}
+.tag-wrap:focus-within{border-color:var(--ac)}
+.tag-wrap input{border:none;background:transparent;color:var(--t0);font-family:var(--mono);font-size:12px;outline:none;flex:1;min-width:70px}
+.tag-pill{display:inline-flex;align-items:center;gap:3px;background:var(--acd);color:var(--ac);border-radius:4px;padding:2px 7px;font-family:var(--mono);font-size:11px}
+.tag-pill button{background:none;border:none;color:inherit;cursor:pointer;padding:0;opacity:.6;line-height:1}.tag-pill button:hover{opacity:1}
+.tag-sugs{position:absolute;top:calc(100%+3px);left:0;right:0;background:var(--s2);border:1px solid var(--b1);border-radius:var(--rl);box-shadow:0 12px 40px rgba(0,0,0,.4);z-index:300;max-height:180px;overflow-y:auto}
+.tag-si{display:flex;align-items:center;gap:7px;padding:7px 10px;cursor:pointer;transition:background .1s}
+.tag-si:hover,.tag-si.act{background:var(--s3)}
+
+/* ── CMD PALETTE ── */
+.cmd-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:1000;display:flex;align-items:flex-start;justify-content:center;padding-top:80px;backdrop-filter:blur(5px)}
+.cmd-box{background:var(--s1);border:1px solid var(--b1);border-radius:var(--rxl);width:100%;max-width:580px;box-shadow:0 32px 80px rgba(0,0,0,.65);overflow:hidden}
+.cmd-inp{width:100%;background:transparent;border:none;border-bottom:1px solid var(--b0);padding:14px 16px;font-family:var(--sans);font-size:15px;color:var(--t0);outline:none}
+.cmd-results{max-height:340px;overflow-y:auto}
+.cmd-item{display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;transition:background .1s}
+.cmd-item:hover,.cmd-item.act{background:var(--s2)}
+.cmd-ico{width:28px;height:28px;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;background:var(--s3)}
+.cmd-grp{font-family:var(--mono);font-size:9px;color:var(--t3);letter-spacing:.12em;text-transform:uppercase;padding:8px 14px 3px;background:var(--s1)}
+
+/* ── FILE CARDS ── */
+.file-card{background:var(--s2);border:1px solid var(--b0);border-radius:var(--rl);padding:12px;display:flex;flex-direction:column;align-items:center;cursor:pointer;transition:all .15s;position:relative}
+.file-card:hover{border-color:var(--b1);background:var(--s3)}
+.file-card.selected{border-color:var(--ac);background:var(--acd)}
+.file-icon{font-size:32px;margin-bottom:7px;line-height:1}
+.file-name{font-size:11px;color:var(--t0);text-align:center;word-break:break-all;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.file-size{font-family:var(--mono);font-size:10px;color:var(--t3);margin-top:3px}
+.file-type-badge{font-family:var(--mono);font-size:9px;padding:1px 5px;border-radius:3px;margin-top:3px;text-transform:uppercase;font-weight:500}
+
+/* ── DROPZONE ── */
+.dropzone{border:2px dashed var(--b1);border-radius:var(--rl);padding:40px 20px;text-align:center;cursor:pointer;transition:all .2s;background:var(--s2)}
+.dropzone.over{border-color:var(--ac);background:var(--acd)}
+.dz-icon{font-size:36px;margin-bottom:10px;opacity:.4}
+.dz-text{font-size:13px;color:var(--t1);margin-bottom:4px;font-weight:600}
+.dz-hint{font-size:11px;color:var(--t3);font-family:var(--mono)}
+
+/* ── DIFF ── */
+.diff-view{font-family:var(--mono);font-size:11px;line-height:1.7;border:1px solid var(--b0);border-radius:var(--r);overflow:hidden}
+.diff-line{padding:1px 12px;display:flex;gap:8px}
+.diff-line.add{background:rgba(34,197,94,.1)} .diff-line.del{background:rgba(239,68,68,.1)}
+.diff-ln{color:var(--t3);min-width:24px;user-select:none}
+.diff-line.add .diff-ln{color:var(--gn)} .diff-line.del .diff-ln{color:var(--rd)}
+
+/* ── KANBAN ── */
+.kanban{display:flex;gap:12px;overflow-x:auto;padding-bottom:12px;min-height:400px}
+.kbcol{min-width:230px;max-width:240px;background:var(--s2);border:1px solid var(--b0);border-radius:var(--rl);display:flex;flex-direction:column;flex-shrink:0}
+.kbh{padding:11px 14px;font-size:12px;font-weight:700;border-bottom:1px solid var(--b0);display:flex;align-items:center;justify-content:space-between;letter-spacing:.03em}
+.kbb{padding:8px;display:flex;flex-direction:column;gap:6px;flex:1;overflow-y:auto;max-height:480px}
+.kb-card{background:var(--s1);border:1px solid var(--b0);border-radius:var(--r);padding:10px;cursor:pointer;transition:all .15s}
+.kb-card:hover{border-color:var(--b1);box-shadow:0 4px 12px rgba(0,0,0,.2)}
+
+/* ── PROGRESS / BAR ── */
+.prog-bar{height:4px;background:var(--s3);border-radius:2px;overflow:hidden}
+.prog-fill{height:100%;background:var(--ac);transition:width .4s;border-radius:2px}
+.prog-fill.gn{background:var(--gn)} .prog-fill.rd{background:var(--rd)}
+
+/* ── TOASTS ── */
+.toast-container{position:fixed;top:14px;right:14px;z-index:2000;display:flex;flex-direction:column;gap:6px;pointer-events:none}
+.toast{background:var(--s2);border:1px solid var(--b1);border-radius:var(--r);padding:10px 14px;font-size:12px;color:var(--t0);box-shadow:0 8px 32px rgba(0,0,0,.4);min-width:200px;display:flex;align-items:center;gap:8px;font-family:var(--mono)}
+@keyframes slideIn{from{opacity:0;transform:translateX(16px)}}
+.toast{animation:slideIn .2s ease}
+.toast.success{border-left:3px solid var(--gn)} .toast.error{border-left:3px solid var(--rd)}
+.toast.info{border-left:3px solid var(--bl)} .toast.warn{border-left:3px solid var(--or)}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:1px;background:var(--s2);border-radius:var(--r);padding:3px;border:1px solid var(--b0)}
+.tab{padding:5px 13px;border-radius:4px;cursor:pointer;font-size:12px;color:var(--t2);transition:all .1s;font-weight:500}
+.tab.on{background:var(--s1);color:var(--t0)}
+
+/* ── MISC ── */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;text-align:center}
+.empty-ico{font-size:44px;margin-bottom:12px;opacity:.2}
+.empty-txt{font-size:14px;color:var(--t2);margin-bottom:4px;font-weight:600}
+.empty-hint{font-size:12px;color:var(--t3);font-family:var(--mono)}
+.sep{height:1px;background:var(--b0);margin:16px 0}
+.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.section-title{font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--t2);font-family:var(--mono)}
+.spinner{width:14px;height:14px;border:2px solid var(--b1);border-top-color:var(--ac);border-radius:50%;animation:spin .6s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}}
+.fade-in{animation:fadeIn .25s ease}
+.dot-pulse::after{content:'...';animation:dots 1.2s steps(4,end) infinite}
+@keyframes dots{0%,20%{content:''}40%{content:'.'}60%{content:'..'}80%,100%{content:'...'}}
+
+/* ── WEBHOOK ── */
+.wh-item{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--b0)}
+.wh-src{padding:2px 7px;border-radius:3px;font-family:var(--mono);font-size:10px;font-weight:500}
+.wh-github{background:rgba(255,255,255,.07);color:var(--t1)} .wh-drive{background:var(--bld);color:var(--bl)}
+
+/* ── STORAGE STATUS DOT ── */
+.sdot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.sdot.on{background:var(--gn);box-shadow:0 0 6px var(--gn)} .sdot.off{background:var(--t3)}
+
+/* ── SETTINGS ROWS ── */
+.set-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--b0)}
+.set-lbl{font-size:13px;color:var(--t0);font-weight:500}
+.set-desc{font-size:11px;color:var(--t3);margin-top:2px;font-family:var(--mono)}
+
+/* ── SELECTION BAR ── */
+.sel-bar{position:sticky;bottom:12px;margin:0 auto;width:fit-content;background:var(--s1);border:1px solid var(--ac);border-radius:var(--rl);padding:8px 16px;display:flex;align-items:center;gap:10px;box-shadow:0 8px 32px rgba(228,255,26,.15);font-size:13px;font-weight:600}
+
+/* ── AI PANEL ── */
+.ai-panel{background:linear-gradient(135deg,var(--pud),transparent);border:1px solid rgba(168,85,247,.2);border-radius:var(--rl);padding:14px}
+.ai-label{font-family:var(--mono);font-size:9px;color:var(--pu);font-weight:500;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px}
+
+/* ── RESPONSIVE ── */
+@media(max-width:768px){
+  .sidebar{position:fixed;left:56px;top:0;bottom:0;z-index:40}
+  .sidebar.collapsed{transform:translateX(-220px)}
+  .grid-docs{grid-template-columns:1fr}
+  .grid-stats{grid-template-columns:1fr 1fr}
+  .fr2{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useCallback,useMemo,useRef,createContext,useContext}=React;
+
+const API = 'http://localhost:8000/api/v1';
+
+// ── UTILITIES ────────────────────────────────────────────────────────────────
+const fmtBytes = b => b < 1024 ? b+'B' : b < 1048576 ? (b/1024).toFixed(1)+'KB' : (b/1048576).toFixed(1)+'MB';
+const tAgo = iso => {
+  const s = Math.floor((Date.now()-new Date(iso))/1000);
+  if(s<60) return 'just now'; if(s<3600) return Math.floor(s/60)+'m ago';
+  if(s<86400) return Math.floor(s/3600)+'h ago'; return Math.floor(s/86400)+'d ago';
+};
+const statusClass = s => ({'Todo':'s-todo','In Progress':'s-prog','In Review':'s-review','Done':'s-done'}[s]||'s-todo');
+const fileIcon = t => ({'pdf':'📄','png':'🖼️','jpg':'🖼️','jpeg':'🖼️','gif':'🖼️','mp4':'🎬','mp3':'🎵','xlsx':'📊','xls':'📊','csv':'📊','docx':'📝','doc':'📝','zip':'🗜️','sh':'⚙️','py':'🐍','js':'⚡','ts':'⚡','jsx':'⚡','tsx':'⚡','json':'📋','sql':'🗄️','md':'📃','txt':'📃','go':'🔵','rs':'🦀','java':'☕','kt':'📱','swift':'🍎'})[t?.toLowerCase()] || '📎';
+const fileColor = t => ({'pdf':'#ef4444','png':'#a855f7','jpg':'#a855f7','xlsx':'#22c55e','csv':'#22c55e','docx':'#3b82f6','zip':'#71717a','sh':'#06b6d4','py':'#3b82f6','js':'#f59e0b','ts':'#3b82f6','sql':'#059669','md':'#94a3b8','go':'#06b6d4','rs':'#f97316'})[t?.toLowerCase()] || '#52525b';
+
+function useDebounce(v,d){const[s,ss]=useState(v);useEffect(()=>{const t=setTimeout(()=>ss(v),d);return()=>clearTimeout(t);},[v,d]);return s;}
+function useLS(key,init){
+  const[v,sv]=useState(()=>{try{const s=localStorage.getItem(key);return s?JSON.parse(s):init;}catch{return init;}});
+  const set=useCallback(nv=>{sv(nv);try{localStorage.setItem(key,JSON.stringify(nv));}catch{}},[key]);
+  return[v,set];
+}
+function useToast(){
+  const[ts,sTs]=useState([]);
+  const add=useCallback((msg,type='info')=>{const id=Date.now();sTs(a=>[...a,{id,msg,type}]);setTimeout(()=>sTs(a=>a.filter(x=>x.id!==id)),3500);},[]);
+  return{toasts:ts,toast:add};
+}
+
+// ── DEMO DATA ────────────────────────────────────────────────────────────────
+const DEMO_FOLDERS = [
+  {id:'f1',name:'Engineering',slug:'engineering',color:'#3b82f6',icon:'⚙️'},
+  {id:'f2',name:'Security',slug:'security',color:'#ef4444',icon:'🔐'},
+  {id:'f3',name:'APIs',slug:'apis',color:'#f59e0b',icon:'⚡'},
+  {id:'f4',name:'DevOps',slug:'devops',color:'#8b5cf6',icon:'🚀'},
+  {id:'f5',name:'Architecture',slug:'architecture',color:'#22c55e',icon:'🏗️'},
+];
+const DEMO_DOCS = [
+  {id:'d1',title:'JWT Authentication Architecture',content:'# JWT Auth\n\nRS256 token signing with 15-min expiry and httpOnly refresh cookies.\n\n## Overview\n\nImplementing secure authentication using RS256 asymmetric keys. Access tokens expire after 15 minutes; refresh tokens live in httpOnly cookies for 7 days.',user_tags:['auth','jwt','security'],ai_tags:['authentication','authorization','OAuth','token rotation'],ai_summary:'JWT authentication with RS256 token rotation and httpOnly refresh cookies.',folder_ids:['f1','f2'],status:'In Review',pinned:true,bookmarked:true,is_active:true,version:3,created_at:new Date(Date.now()-864e5).toISOString(),updated_at:new Date(Date.now()-3600e3).toISOString(),storage_locations:{local:{path:'./data/files/d1/jwt.md'},github:null,drive:null}},
+  {id:'d2',title:'PostgreSQL Full-Text Search Setup',content:'# FTS with PostgreSQL\n\nGIN indexes and TSVECTOR for BM25 weighted search.\n\n## Weights\n\ntitle=A, tags=B, content=D\n\n## Index\n\n```sql\nCREATE INDEX USING GIN(search_vector);\n```',user_tags:['database','search','postgresql'],ai_tags:['SQL','GIN','BM25','TSVECTOR','indexing'],ai_summary:'PostgreSQL FTS using GIN indexes and BM25 ranking for sub-50ms search.',folder_ids:['f1'],status:'Done',pinned:false,bookmarked:false,is_active:true,version:2,created_at:new Date(Date.now()-2592e5).toISOString(),updated_at:new Date(Date.now()-86e6).toISOString(),storage_locations:{local:{path:'./data/files/d2/pg.md'},github:{url:'https://github.com/org/repo/blob/main/uploads/d2/pg.md'},drive:null}},
+  {id:'d3',title:'API Rate Limiting Strategy',content:'# Rate Limiting\n\nSliding window per API key.\n\n## Algorithm\n\n100 req/min per key using deque timestamps.',user_tags:['api','rate-limiting'],ai_tags:['REST','throttling','Redis','429','quota'],ai_summary:'Sliding window rate limiting using in-memory deque per client key.',folder_ids:['f3'],status:'Todo',pinned:false,bookmarked:true,is_active:true,version:1,created_at:new Date(Date.now()-432e5).toISOString(),updated_at:new Date(Date.now()-432e5).toISOString(),storage_locations:{local:{path:'./data/files/d3/rate.md'},github:null,drive:null}},
+  {id:'d4',title:'Docker Deployment Runbook',content:'# Docker Deploy\n\nStep-by-step deployment runbook.\n\n1. Build image\n2. Push to registry\n3. Compose up\n4. Health check',user_tags:['deploy','docker','devops'],ai_tags:['container','CI/CD','Kubernetes','pipeline'],ai_summary:'Docker deployment runbook with multi-stage builds and health checks.',folder_ids:['f4'],status:'Done',pinned:false,bookmarked:false,is_active:true,version:1,created_at:new Date(Date.now()-1728e5).toISOString(),updated_at:new Date(Date.now()-1728e5).toISOString(),storage_locations:{local:{path:'./data/files/d4/docker.md'},github:{url:'https://github.com'},drive:{drive_id:'abc123',url:'https://drive.google.com'}}},
+  {id:'d5',title:'Webhook Race Conditions',content:'# Webhook Race Conditions\n\nConcurrent push event deduplication via SHA.',user_tags:['webhook','concurrency'],ai_tags:['race condition','idempotency','deduplication'],ai_summary:'Webhook SHA deduplication to prevent duplicate processing.',folder_ids:['f1','f5'],status:'In Progress',pinned:false,bookmarked:false,is_active:true,version:2,created_at:new Date(Date.now()-648e5).toISOString(),updated_at:new Date(Date.now()-7200e3).toISOString(),storage_locations:{local:{path:'./data/files/d5/webhook.md'},github:null,drive:null}},
+  {id:'d6',title:'Old Architecture Decision (Archived)',content:'Deprecated.',user_tags:['deprecated'],ai_tags:[],ai_summary:null,folder_ids:['f5'],status:'Todo',pinned:false,bookmarked:false,is_active:false,deleted_at:new Date().toISOString(),version:1,created_at:new Date(Date.now()-2e7).toISOString(),updated_at:new Date(Date.now()-2e7).toISOString(),storage_locations:{local:null,github:null,drive:null}},
+];
+const DEMO_FILES = [
+  {id:'fi1',name:'architecture-diagram.png',file_type:'png',mime_type:'image/png',size_bytes:204800,content_extracted:'',tags:['diagram','architecture'],folder_ids:['f5'],uploaded_at:new Date(Date.now()-86e6).toISOString(),storage_locations:{local:{path:'./data/files/fi1_architecture-diagram.png'},github:null,drive:null}},
+  {id:'fi2',name:'api-spec.pdf',file_type:'pdf',mime_type:'application/pdf',size_bytes:512000,content_extracted:'OpenAPI 3.1 specification for REST endpoints...',tags:['api','spec'],folder_ids:['f3'],uploaded_at:new Date(Date.now()-172e6).toISOString(),storage_locations:{local:{path:'./data/files/fi2_api-spec.pdf'},github:{url:'https://github.com'},drive:{drive_id:'xyz',url:'https://drive.google.com'}}},
+  {id:'fi3',name:'deploy.sh',file_type:'sh',mime_type:'text/plain',size_bytes:4096,content_extracted:'#!/bin/bash\nset -e\ndocker build -t akrs .\ndocker push registry/akrs\ndocker-compose up -d',tags:['deploy','script'],folder_ids:['f4'],uploaded_at:new Date(Date.now()-259e6).toISOString(),storage_locations:{local:{path:'./data/files/fi3_deploy.sh'},github:null,drive:null}},
+  {id:'fi4',name:'database-schema.sql',file_type:'sql',mime_type:'text/plain',size_bytes:32768,content_extracted:'CREATE TABLE documents (\n  id UUID PRIMARY KEY...',tags:['database','schema'],folder_ids:['f1'],uploaded_at:new Date(Date.now()-345e6).toISOString(),storage_locations:{local:{path:'./data/files/fi4_database-schema.sql'},github:{url:'https://github.com'},drive:{drive_id:'def456',url:'https://drive.google.com'}}},
+];
+const DEMO_STORAGE = {config:{local:{enabled:true,base_dir:'./data/files'},github:{enabled:false,repo:'',branch:'main',path:'uploads'},drive:{enabled:false,folder_id:''}},active_backends:['local'],cost_estimate:{active:['local'],notes:['Local: FREE (disk only)']}};
+
+// ── TAG INPUT ────────────────────────────────────────────────────────────────
+function TagInput({value,onChange,placeholder='Add tags…'}){
+  const[inp,sI]=useState('');const[sugs,sSugs]=useState([]);const[idx,sIdx]=useState(-1);
+  const db=useDebounce(inp,160);
+  useEffect(()=>{if(db.length<1){sSugs([]);return;}fetch(`${API}/tags?prefix=${encodeURIComponent(db)}&limit=6`).then(r=>r.json()).then(d=>sSugs(d.tags||[])).catch(()=>{});},[ db]);
+  const add=tag=>{tag=tag.trim().toLowerCase();if(tag&&!value.includes(tag))onChange([...value,tag]);sI('');sSugs([]);};
+  const rem=tag=>onChange(value.filter(t=>t!==tag));
+  return(<div style={{position:'relative'}}>
+    <div className="tag-wrap">
+      {value.map(t=><span key={t} className="tag-pill">{t}<button onClick={()=>rem(t)}>×</button></span>)}
+      <input value={inp} onChange={e=>sI(e.target.value)} onKeyDown={e=>{if((e.key===','||e.key==='Enter')&&inp){e.preventDefault();add(inp);}if(e.key==='Backspace'&&!inp&&value.length)rem(value[value.length-1]);if(e.key==='ArrowDown'){e.preventDefault();sIdx(i=>Math.min(i+1,sugs.length-1));}if(e.key==='ArrowUp'){e.preventDefault();sIdx(i=>Math.max(i-1,-1));}if(e.key==='Enter'&&idx>=0&&sugs[idx]){add(sugs[idx].tag);sIdx(-1);}if(e.key==='Escape')sSugs([]);}} placeholder={value.length?'':placeholder}/>
+    </div>
+    {sugs.length>0&&<div className="tag-sugs">{sugs.map((s,i)=><div key={s.tag} className={`tag-si${i===idx?' act':''}`} onMouseDown={e=>{e.preventDefault();add(s.tag);}}><span className="tag" style={{background:'var(--acd)',color:'var(--ac)'}}>{s.tag}</span><span style={{fontSize:10,color:'var(--t3)',fontFamily:'var(--mono)',marginLeft:'auto'}}>×{s.use_count}</span></div>)}</div>}
+  </div>);
+}
+
+// ── STORAGE BADGES ────────────────────────────────────────────────────────────
+function StorageBadges({locations}){
+  if(!locations) return null;
+  return(<div style={{display:'flex',gap:4,flexWrap:'wrap',marginTop:4}}>
+    {locations.local&&<span className="store-badge sb-local">💾 Local</span>}
+    {locations.github&&<span className="store-badge sb-github">🐙 GitHub</span>}
+    {locations.drive&&<span className="store-badge sb-drive">☁️ Drive</span>}
+    {!locations.local&&!locations.github&&!locations.drive&&<span className="store-badge sb-off">Not saved</span>}
+  </div>);
+}
+
+// ── CMD PALETTE ──────────────────────────────────────────────────────────────
+function CmdPalette({onClose,onNav,docs}){
+  const[q,sQ]=useState('');const[idx,sIdx]=useState(0);const db=useDebounce(q,80);const ref=useRef();
+  useEffect(()=>ref.current?.focus(),[]);
+  const cmds=useMemo(()=>[
+    {grp:'Navigate',items:[
+      {lbl:'Dashboard',ico:'🏠',act:()=>onNav('dashboard')},
+      {lbl:'Documents',ico:'📚',act:()=>onNav('docs')},
+      {lbl:'Search',ico:'🔍',act:()=>onNav('search')},
+      {lbl:'Files',ico:'📁',act:()=>onNav('files')},
+      {lbl:'Storage',ico:'🗄️',act:()=>onNav('storage')},
+      {lbl:'Analytics',ico:'📊',act:()=>onNav('analytics')},
+      {lbl:'Settings',ico:'⚙️',act:()=>onNav('settings')},
+    ]},
+    {grp:'Documents',items:(docs||[]).filter(d=>d.is_active).filter(d=>!db||d.title.toLowerCase().includes(db.toLowerCase())).slice(0,5).map(d=>({lbl:d.title,ico:'📄',act:()=>onNav('docs',d)}))},
+  ],[docs,db,onNav]);
+  const flat=useMemo(()=>cmds.flatMap(g=>g.items).filter(i=>!db||i.lbl.toLowerCase().includes(db.toLowerCase())),[cmds,db]);
+  useEffect(()=>sIdx(0),[db]);
+  const hk=e=>{if(e.key==='ArrowDown'){e.preventDefault();sIdx(i=>Math.min(i+1,flat.length-1));}if(e.key==='ArrowUp'){e.preventDefault();sIdx(i=>Math.max(i-1,0));}if(e.key==='Enter'&&flat[idx]){flat[idx].act();onClose();}if(e.key==='Escape')onClose();};
+  let fi=-1;
+  return(<div className="cmd-overlay" onClick={onClose}><div className="cmd-box" onClick={e=>e.stopPropagation()}>
+    <input ref={ref} className="cmd-inp" placeholder="Search commands, docs…" value={q} onChange={e=>sQ(e.target.value)} onKeyDown={hk}/>
+    <div className="cmd-results">{cmds.map(g=>{const items=g.items.filter(i=>!db||i.lbl.toLowerCase().includes(db.toLowerCase()));if(!items.length)return null;return(<div key={g.grp}><div className="cmd-grp">{g.grp}</div>{items.map(it=>{fi++;const ci=fi;return(<div key={it.lbl} className={`cmd-item${ci===idx?' act':''}`} onMouseDown={()=>{it.act();onClose();}}><div className="cmd-ico">{it.ico}</div><span style={{fontSize:13,fontWeight:500}}>{it.lbl}</span></div>);})}</div>);})}</div>
+    <div style={{padding:'8px 14px',borderTop:'1px solid var(--b0)',display:'flex',gap:10,fontFamily:'var(--mono)',fontSize:10,color:'var(--t3)'}}>
+      <span>↑↓ Navigate</span><span>↵ Select</span><span>Esc Close</span>
+    </div>
+  </div></div>);
+}
+
+// ── DOC MODAL ────────────────────────────────────────────────────────────────
+function DocModal({doc,folders,onClose,onSave,onDelete,docs}){
+  const[title,sT]=useState(doc?.title||'');const[content,sC]=useState(doc?.content||'');
+  const[tags,sTags]=useState(doc?.user_tags||[]);const[fids,sFids]=useState(doc?.folder_ids||[]);
+  const[status,setSt]=useState(doc?.status||'Todo');const[saving,sSav]=useState(false);
+  const[tab,sTab]=useState('edit');
+  const related=useMemo(()=>{if(!doc||!docs)return[];const my=new Set([...(doc.user_tags||[]),...(doc.ai_tags||[])]);return docs.filter(d=>d.id!==doc.id&&d.is_active).map(d=>{const dt=new Set([...(d.user_tags||[]),...(d.ai_tags||[])]);const inter=[...my].filter(t=>dt.has(t)).length;return{...d,score:inter};}).filter(d=>d.score>0).sort((a,b)=>b.score-a.score).slice(0,3);},[doc,docs]);
+  const dup=useMemo(()=>(!title.trim()||!docs)?null:docs.find(d=>d.id!==doc?.id&&d.is_active&&title.length>5&&d.title.toLowerCase().includes(title.toLowerCase().slice(0,8))),[title,docs,doc]);
+  const save=async()=>{if(!title.trim())return;sSav(true);await new Promise(r=>setTimeout(r,300));onSave({id:doc?.id,title,content,user_tags:tags,folder_ids:fids,status});sSav(false);onClose();};
+  return(<div className="overlay"><div className="modal modal-lg fade-in" onClick={e=>e.stopPropagation()}>
+    <div className="modal-head">
+      <span className="modal-title">{doc?.id?'Edit Document':'New Document'}</span>
+      <div style={{display:'flex',gap:6,alignItems:'center'}}>
+        {doc?.id&&<span className="tag" style={{background:'var(--s3)',color:'var(--t3)',fontFamily:'var(--mono)',fontSize:10}}>v{doc.version||1}</span>}
+        {doc?.storage_locations&&<StorageBadges locations={doc.storage_locations}/>}
+        <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
+      </div>
+    </div>
+    <div style={{padding:'0 20px',borderBottom:'1px solid var(--b0)'}}>
+      <div className="tabs">{['edit','preview','related'].map(t=><div key={t} className={`tab${tab===t?' on':''}`} onClick={()=>sTab(t)} style={{textTransform:'capitalize'}}>{t}</div>)}</div>
+    </div>
+    <div className="modal-body">
+      {tab==='edit'&&<>
+        {dup&&<div style={{background:'var(--ord)',border:'1px solid rgba(249,115,22,.2)',borderRadius:'var(--r)',padding:'8px 12px',marginBottom:12,fontSize:12,color:'var(--or)',fontFamily:'var(--mono)'}}>⚠ Possible duplicate: "{dup.title}"</div>}
+        <div className="fg"><label className="fl">Title</label><input className="fi" value={title} onChange={e=>sT(e.target.value)} placeholder="Document title…"/></div>
+        <div className="fg"><label className="fl">Content (Markdown)</label><textarea className="fi fta fi-mono" value={content} onChange={e=>sC(e.target.value)} placeholder="Write in markdown…" style={{minHeight:220}}/></div>
+        <div className="fr2">
+          <div className="fg"><label className="fl">Status</label>
+            <select className="fi" value={status} onChange={e=>setSt(e.target.value)}>
+              {['Todo','In Progress','In Review','Done'].map(s=><option key={s}>{s}</option>)}
+            </select>
+          </div>
+          <div className="fg"><label className="fl">Folders</label>
+            <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
+              {folders.map(f=><div key={f.id} onClick={()=>sFids(ids=>ids.includes(f.id)?ids.filter(i=>i!==f.id):[...ids,f.id])} style={{display:'inline-flex',alignItems:'center',gap:5,padding:'4px 10px',borderRadius:'var(--r)',border:'1px solid var(--b0)',cursor:'pointer',fontSize:12,background:fids.includes(f.id)?f.color+'22':'transparent',borderColor:fids.includes(f.id)?f.color:'var(--b0)',color:fids.includes(f.id)?f.color:'var(--t2)',transition:'all .1s'}}>
+                {f.icon}{f.name}
+              </div>)}
+            </div>
+          </div>
+        </div>
+        <div className="fg"><label className="fl">Tags</label><TagInput value={tags} onChange={sTags}/></div>
+        {doc?.ai_tags?.length>0&&<div className="ai-panel"><div className="ai-label">✦ AI Generated Tags</div><div style={{display:'flex',flexWrap:'wrap',gap:4}}>{doc.ai_tags.map(t=><span key={t} className="tag tag-ai">{t}</span>)}</div>{doc.ai_summary&&<div style={{marginTop:8,fontSize:12,color:'var(--t1)',lineHeight:1.5,fontStyle:'italic'}}>"{doc.ai_summary}"</div>}</div>}
+      </>}
+      {tab==='preview'&&<div style={{fontFamily:'var(--mono)',fontSize:12,lineHeight:1.8,color:'var(--t1)',whiteSpace:'pre-wrap',padding:4}}>{content||<span style={{color:'var(--t3)',fontStyle:'italic'}}>Nothing to preview.</span>}</div>}
+      {tab==='related'&&<div>{related.length?related.map(d=><div key={d.id} style={{background:'var(--s2)',border:'1px solid var(--b0)',borderRadius:'var(--r)',padding:'10px 14px',marginBottom:8}}><div style={{fontWeight:600,fontSize:13,marginBottom:4}}>{d.title}</div><div style={{display:'flex',gap:4,flexWrap:'wrap'}}>{[...(d.user_tags||[]),...(d.ai_tags||[])].slice(0,5).map(t=><span key={t} className="tag tag-user" style={{fontSize:10}}>{t}</span>)}</div></div>):<div className="empty"><div className="empty-ico">🔗</div><div className="empty-txt">No related documents</div><div className="empty-hint">Add matching tags to create connections</div></div>}</div>}
+    </div>
+    <div className="modal-foot">
+      {doc?.id&&<button className="btn btn-danger btn-sm" onClick={()=>{onDelete(doc.id);onClose();}}>🗑 Delete</button>}
+      <button className="btn btn-ghost btn-sm" onClick={onClose}>Cancel</button>
+      <button className="btn btn-primary btn-sm" onClick={save} disabled={saving||!title.trim()}>{saving?<><span className="spinner"/>&nbsp;Saving…</>:'Save'}</button>
+    </div>
+  </div></div>);
+}
+
+// ── EXPORT MODAL ─────────────────────────────────────────────────────────────
+function ExportModal({docs,onClose,toast}){
+  const[fmt,sF]=useState('zip-all');const[scope,sS]=useState('active');const[loading,sL]=useState(false);
+  const opts=[
+    {id:'zip-all',label:'Full ZIP Dump',desc:'All docs + files in one archive',icon:'📦'},
+    {id:'zip-docs',label:'Documents ZIP',desc:'All documents as .md files',icon:'📚'},
+    {id:'zip-files',label:'Files ZIP',desc:'Raw uploaded files',icon:'📁'},
+    {id:'json',label:'JSON',desc:'Flat JSON array of documents',icon:'{ }'},
+    {id:'csv',label:'CSV',desc:'Spreadsheet-compatible export',icon:'📊'},
+    {id:'markdown',label:'Markdown',desc:'Combined .md file',icon:'📝'},
+  ];
+  const doExport=async()=>{
+    sL(true);
+    try{
+      let url,filename;
+      if(fmt==='zip-all'){url=`${API}/download/all.zip?scope=${scope}`;filename='akrs-full-dump.zip';}
+      else if(fmt==='zip-docs'){url=`${API}/download/docs.zip?scope=${scope}&format=markdown`;filename='akrs-docs.zip';}
+      else if(fmt==='zip-files'){url=`${API}/download/files.zip`;filename='akrs-files.zip';}
+      else{url=`${API}/export?format=${fmt}&scope=${scope}`;filename=`akrs-export.${fmt==='markdown'?'md':fmt}`;}
+      // In demo, create local file
+      const tgt=scope==='active'?docs.filter(d=>d.is_active):docs;
+      let content,mime;
+      if(fmt==='json'){content=JSON.stringify(tgt,null,2);mime='application/json';filename='akrs-export.json';}
+      else if(fmt==='csv'){content=[['id','title','tags','status'],...tgt.map(d=>[d.id,`"${d.title}"`,`"${(d.user_tags||[]).join(';')}"`,d.status])].map(r=>r.join(',')).join('\n');mime='text/csv';filename='akrs-export.csv';}
+      else if(fmt==='markdown'){content=tgt.map(d=>`# ${d.title}\n\n${d.ai_summary||''}\n\n**Tags:** ${(d.user_tags||[]).join(', ')}\n\n${d.content||''}\n\n---\n\n`).join('');mime='text/markdown';filename='akrs-export.md';}
+      else{content=JSON.stringify({info:'Connect to backend for ZIP downloads',docs:tgt.length},null,2);mime='application/json';}
+      if(content){const blob=new Blob([content],{type:mime});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;a.click();}
+      toast(`Exported ${tgt.length} documents`,'success');onClose();
+    }catch(e){toast('Export failed','error');}finally{sL(false);}
+  };
+  return(<div className="overlay"><div className="modal modal-sm fade-in" onClick={e=>e.stopPropagation()}>
+    <div className="modal-head"><span className="modal-title">Export Data</span><button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button></div>
+    <div className="modal-body">
+      <div className="fg"><label className="fl">Format</label>
+        <div style={{display:'flex',flexDirection:'column',gap:6}}>
+          {opts.map(o=><div key={o.id} onClick={()=>sF(o.id)} style={{display:'flex',alignItems:'center',gap:10,padding:'9px 12px',borderRadius:'var(--r)',border:`1px solid ${fmt===o.id?'var(--ac)':'var(--b0)'}`,cursor:'pointer',background:fmt===o.id?'var(--acd)':'var(--s2)',transition:'all .1s'}}>
+            <span style={{fontSize:18,minWidth:24}}>{o.icon}</span>
+            <div><div style={{fontSize:13,fontWeight:600,color:fmt===o.id?'var(--ac)':'var(--t0)'}}>{o.label}</div><div style={{fontSize:11,color:'var(--t3)',fontFamily:'var(--mono)'}}>{o.desc}</div></div>
+          </div>)}
+        </div>
+      </div>
+      <div className="fg"><label className="fl">Scope</label>
+        <div style={{display:'flex',gap:8}}>
+          {['active','all'].map(s=><div key={s} onClick={()=>sS(s)} style={{flex:1,padding:'7px',textAlign:'center',borderRadius:'var(--r)',border:`1px solid ${scope===s?'var(--ac)':'var(--b0)'}`,cursor:'pointer',background:scope===s?'var(--acd)':'transparent',color:scope===s?'var(--ac)':'var(--t2)',fontSize:12,fontWeight:600,fontFamily:'var(--mono)',transition:'all .1s'}}>{s==='active'?'Active only':'All (incl. deleted)'}</div>)}
+        </div>
+      </div>
+    </div>
+    <div className="modal-foot">
+      <button className="btn btn-ghost btn-sm" onClick={onClose}>Cancel</button>
+      <button className="btn btn-primary" onClick={doExport} disabled={loading}>{loading?<><span className="spinner"/>&nbsp;Exporting…</>:'⬇ Download'}</button>
+    </div>
+  </div></div>);
+}
+
+// ── DASHBOARD PAGE ────────────────────────────────────────────────────────────
+function DashboardPage({docs,files,folders,setPage,onNewDoc,storageConfig}){
+  const active=docs.filter(d=>d.is_active);
+  const pinned=docs.filter(d=>d.is_active&&d.pinned);
+  const recent=[...active].sort((a,b)=>new Date(b.updated_at)-new Date(a.updated_at)).slice(0,4);
+  const totalSt=files.reduce((s,f)=>s+f.size_bytes,0);
+  const done=active.filter(d=>d.status==='Done').length;
+  const activeBackends=(storageConfig?.active_backends)||['local'];
+
+  return(<div className="content fade-in">
+    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:24}}>
+      <div>
+        <h1 style={{fontSize:24,fontWeight:800,letterSpacing:'-.03em',marginBottom:2}}>Knowledge Base</h1>
+        <p style={{color:'var(--t2)',fontSize:13,fontFamily:'var(--mono)'}}>AKRS v3 · {active.length} documents · {files.length} files</p>
+      </div>
+      <button className="btn btn-primary" onClick={onNewDoc}>+ New Document</button>
+    </div>
+
+    {/* Storage status bar */}
+    <div style={{background:'var(--s1)',border:'1px solid var(--b0)',borderRadius:'var(--rl)',padding:'12px 16px',marginBottom:20,display:'flex',alignItems:'center',gap:12,flexWrap:'wrap'}}>
+      <span style={{fontSize:12,fontWeight:700,fontFamily:'var(--mono)',color:'var(--t2)',letterSpacing:'.06em',textTransform:'uppercase'}}>Storage</span>
+      {[
+        {key:'local',label:'PC Local',icon:'💾'},
+        {key:'github',label:'GitHub',icon:'🐙'},
+        {key:'drive',label:'Drive',icon:'☁️'},
+      ].map(b=>{const on=activeBackends.includes(b.key);return(<div key={b.key} style={{display:'flex',alignItems:'center',gap:6,padding:'4px 10px',borderRadius:'var(--r)',border:'1px solid var(--b0)',background:on?'var(--gnd)':'var(--s2)',cursor:'pointer'}} onClick={()=>setPage('storage')}>
+        <div className={`sdot${on?' on':' off'}`}/>
+        <span style={{fontSize:12,fontFamily:'var(--mono)',color:on?'var(--gn)':'var(--t3)',fontWeight:600}}>{b.icon} {b.label}</span>
+      </div>);})}
+      <span style={{marginLeft:'auto',fontSize:11,color:'var(--t3)',fontFamily:'var(--mono)'}}>Configure →</span>
+    </div>
+
+    {/* Stats */}
+    <div className="grid-stats" style={{marginBottom:24}}>
+      {[
+        {val:active.length,label:'Documents',sub:`${docs.filter(d=>!d.is_active).length} archived`,cls:'c-ac'},
+        {val:files.length,label:'Files',sub:fmtBytes(totalSt)+' total',cls:'c-gn'},
+        {val:done,label:'Completed',sub:active.length?Math.round(done/active.length*100)+'% done':'0%',cls:'c-bl'},
+        {val:pinned.length,label:'Pinned',sub:'Priority docs',cls:'c-pu'},
+        {val:folders.length,label:'Folders',sub:'Organised',cls:'c-or'},
+        {val:active.filter(d=>d.ai_processed_at||d.ai_summary).length,label:'AI Enriched',sub:'With summaries',cls:'c-cy'},
+      ].map(s=><div key={s.label} className={`stat-card ${s.cls}`}>
+        <div className="stat-val">{s.val}</div>
+        <div className="stat-label">{s.label}</div>
+        <div className="stat-sub">{s.sub}</div>
+      </div>)}
+    </div>
+
+    <div style={{display:'grid',gridTemplateColumns:'2fr 1fr',gap:16}}>
+      {/* Recent docs */}
+      <div>
+        <div className="section-head"><span className="section-title">Recent Documents</span><button className="btn btn-ghost btn-xs" onClick={()=>setPage('docs')}>View all →</button></div>
+        <div style={{display:'flex',flexDirection:'column',gap:8}}>
+          {recent.map(doc=>{
+            const dFolders=folders.filter(f=>doc.folder_ids?.includes(f.id));
+            return(<div key={doc.id} className="doc-card" onClick={()=>setPage('docs',doc)}>
+              <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:8,marginBottom:6}}>
+                <div style={{fontWeight:600,fontSize:13,lineHeight:1.3}}>{doc.title}</div>
+                <span className={`tag-status ${statusClass(doc.status)}`}>{doc.status}</span>
+              </div>
+              {doc.ai_summary&&<div style={{fontSize:11,color:'var(--t2)',lineHeight:1.4,marginBottom:8,fontStyle:'italic'}}>"{doc.ai_summary}"</div>}
+              <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
+                {dFolders.slice(0,2).map(f=><span key={f.id} style={{fontSize:10,color:f.color,fontFamily:'var(--mono)'}}>{f.icon}{f.name}</span>)}
+                {doc.user_tags?.slice(0,3).map(t=><span key={t} className="tag tag-user" style={{fontSize:10}}>{t}</span>)}
+                <span style={{marginLeft:'auto',fontSize:10,color:'var(--t3)',fontFamily:'var(--mono)'}}>{tAgo(doc.updated_at)}</span>
+              </div>
+              <StorageBadges locations={doc.storage_locations}/>
+            </div>);
+          })}
+        </div>
+      </div>
+
+      {/* Pinned + Folders */}
+      <div style={{display:'flex',flexDirection:'column',gap:14}}>
+        <div>
+          <div className="section-head"><span className="section-title">Pinned</span></div>
+          {pinned.length?<div style={{display:'flex',flexDirection:'column',gap:6}}>{pinned.slice(0,4).map(d=><div key={d.id} style={{background:'var(--s2)',borderRadius:'var(--r)',padding:'8px 12px',cursor:'pointer',fontSize:13,fontWeight:500}} onClick={()=>setPage('docs',d)}>📌 {d.title}</div>)}</div>:<div style={{color:'var(--t3)',fontSize:12,fontFamily:'var(--mono)'}}>No pinned docs</div>}
+        </div>
+        <div>
+          <div className="section-head"><span className="section-title">Folders</span><button className="btn btn-ghost btn-xs" onClick={()=>setPage('folders')}>Manage →</button></div>
+          <div style={{display:'flex',flexDirection:'column',gap:5}}>
+            {folders.map(f=>{const cnt=docs.filter(d=>d.is_active&&d.folder_ids?.includes(f.id)).length;return(<div key={f.id} style={{display:'flex',alignItems:'center',gap:8,padding:'7px 10px',borderRadius:'var(--r)',background:'var(--s2)',cursor:'pointer'}} onClick={()=>setPage('docs')}>
+              <div className="fdot" style={{width:8,height:8,borderRadius:'50%',background:f.color}}/>
+              <span style={{fontSize:13,flex:1}}>{f.icon} {f.name}</span>
+              <span style={{fontFamily:'var(--mono)',fontSize:10,color:'var(--t3)'}}>{cnt}</span>
+            </div>);})}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>);
+}
+
+// ── SEARCH PAGE ───────────────────────────────────────────────────────────────
+function SearchPage({docs,files,folders,toast}){
+  const[q,sQ]=useState('');const[results,sR]=useState([]);const[fRes,sFR]=useState([]);
+  const[searching,sSr]=useState(false);const[expTags,sET]=useState([]);
+  const[hist,sHist]=useLS('akrs-hist',[]);const[saved,sSaved]=useLS('akrs-saved',[]);
+  const[activeTab,sAT]=useState('all');
+  const dq=useDebounce(q,280);
+
+  useEffect(()=>{
+    if(!dq.trim()){sR([]);sFR([]);sET([]);sSr(false);return;}
+    sSr(true);
+    setTimeout(async()=>{
+      const qL=dq.toLowerCase();
+      let exp=[];
+      try{const r=await fetch(`${API}/tags/expand`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tags:qL.split(' ')})});const d=await r.json();exp=(d.expansions||[]).flatMap(e=>e.synonyms).slice(0,8);}catch{}
+      sET(exp);
+      const all=[qL,...exp.map(t=>t.toLowerCase())];
+      const ranked=docs.filter(d=>d.is_active).map(d=>{let sc=0;const tW=d.title.toLowerCase(),aT=[...(d.user_tags||[]),...(d.ai_tags||[])].map(t=>t.toLowerCase()),cW=(d.content||'').toLowerCase();all.forEach(t=>{if(tW.includes(t))sc+=5;aT.forEach(a=>a.includes(t)&&(sc+=3));if(cW.includes(t))sc+=1;if(d.ai_summary?.toLowerCase().includes(t))sc+=2;});return{...d,score:sc};}).filter(d=>d.score>0).sort((a,b)=>b.score-a.score);
+      const fRanked=files.map(f=>{let sc=0;const nW=f.name.toLowerCase(),cW=(f.content_extracted||'').toLowerCase();all.forEach(t=>{if(nW.includes(t))sc+=3;if(cW.includes(t))sc+=1;});return{...f,score:sc};}).filter(f=>f.score>0).sort((a,b)=>b.score-a.score);
+      sR(ranked);sFR(fRanked);
+      if(dq.trim())sHist(h=>[dq,...h.filter(x=>x!==dq)].slice(0,8));
+      sSr(false);
+    },0);
+  },[dq,docs,files]);
+
+  const saveSrch=()=>{if(!q.trim()||saved.find(s=>s.q===q))return;sSaved(s=>[{q,at:new Date().toISOString()},...s].slice(0,10));toast('Search saved','success');};
+  const allResults=[...results.map(r=>({...r,_type:'doc'})),...fRes.map(r=>({...r,_type:'file'}))].sort((a,b)=>b.score-a.score);
+  const shown=activeTab==='all'?allResults:activeTab==='docs'?results.map(r=>({...r,_type:'doc'})):fRes.map(r=>({...r,_type:'file'}));
+
+  return(<div className="content fade-in">
+    <h1 style={{fontSize:20,fontWeight:800,letterSpacing:'-.02em',marginBottom:16}}>Search</h1>
+    <div style={{position:'relative',marginBottom:16}}>
+      <span className="search-ico" style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',pointerEvents:'none'}}>🔍</span>
+      <input className="fi" style={{paddingLeft:38,paddingRight:100,fontSize:15}} value={q} onChange={e=>sQ(e.target.value)} placeholder="Search documents and files…" autoFocus/>
+      {q&&<div style={{position:'absolute',right:8,top:'50%',transform:'translateY(-50%)',display:'flex',gap:5}}>
+        {searching&&<span className="spinner"/>}
+        <button className="btn btn-ghost btn-xs" onClick={saveSrch}>Save</button>
+        <button className="btn btn-ghost btn-xs" onClick={()=>sQ('')}>✕</button>
+      </div>}
+    </div>
+
+    {expTags.length>0&&<div className="ai-panel" style={{marginBottom:14}}>
+      <div className="ai-label">✦ AI Expanded Terms</div>
+      <div style={{display:'flex',flexWrap:'wrap',gap:5}}>{expTags.map(t=><span key={t} className="tag tag-ai">{t}</span>)}</div>
+    </div>}
+
+    {!q&&<>
+      {hist.length>0&&<div style={{marginBottom:20}}>
+        <div className="section-head"><span className="section-title">Recent Searches</span><button className="btn btn-ghost btn-xs" onClick={()=>sHist([])}>Clear</button></div>
+        <div style={{display:'flex',flexWrap:'wrap',gap:6}}>{hist.map(h=><span key={h} onClick={()=>sQ(h)} style={{padding:'4px 10px',borderRadius:'var(--r)',border:'1px solid var(--b0)',cursor:'pointer',fontSize:12,fontFamily:'var(--mono)',color:'var(--t2)',background:'var(--s2)'}}>⟳ {h}</span>)}</div>
+      </div>}
+      {saved.length>0&&<div>
+        <div className="section-head"><span className="section-title">Saved Searches</span><button className="btn btn-ghost btn-xs" onClick={()=>sSaved([])}>Clear</button></div>
+        <div style={{display:'flex',flexWrap:'wrap',gap:6}}>{saved.map(s=><span key={s.q} onClick={()=>sQ(s.q)} style={{padding:'4px 10px',borderRadius:'var(--r)',border:'1px solid var(--b0)',cursor:'pointer',fontSize:12,fontFamily:'var(--mono)',color:'var(--bl)',background:'var(--bld)'}}>★ {s.q}</span>)}</div>
+      </div>}
+    </>}
+
+    {q&&<>
+      <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:14}}>
+        <div className="tabs">{['all','docs','files'].map(t=><div key={t} className={`tab${activeTab===t?' on':''}`} onClick={()=>sAT(t)} style={{textTransform:'capitalize'}}>{t} {t==='all'?`(${allResults.length})`:t==='docs'?`(${results.length})`:`(${fRes.length})`}</div>)}</div>
+        <span style={{fontSize:11,color:'var(--t3)',fontFamily:'var(--mono)',marginLeft:'auto'}}>{shown.length} results</span>
+      </div>
+      {shown.length===0&&!searching&&<div className="empty"><div className="empty-ico">🔍</div><div className="empty-txt">No results for "{q}"</div><div className="empty-hint">Try different terms or toggle AI expansion</div></div>}
+      <div style={{display:'flex',flexDirection:'column',gap:8}}>
+        {shown.map(item=>{
+          if(item._type==='doc'){const dFolders=folders.filter(f=>item.folder_ids?.includes(f.id));return(<div key={item.id} className="doc-card">
+            <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:8,marginBottom:5}}>
+              <div style={{fontWeight:600,fontSize:13}}>{item.title}</div>
+              <div style={{display:'flex',gap:4,alignItems:'center',flexShrink:0}}>
+                <span className={`tag-status ${statusClass(item.status)}`}>{item.status}</span>
+                <span style={{fontFamily:'var(--mono)',fontSize:9,color:'var(--t3)',background:'var(--s3)',padding:'2px 5px',borderRadius:3}}>score:{item.score}</span>
+              </div>
+            </div>
+            {item.ai_summary&&<div style={{fontSize:11,color:'var(--t2)',lineHeight:1.5,marginBottom:6,fontStyle:'italic'}}>"{item.ai_summary}"</div>}
+            <div style={{display:'flex',gap:5,flexWrap:'wrap',alignItems:'center'}}>
+              {dFolders.map(f=><span key={f.id} style={{fontSize:10,color:f.color}}>{f.icon}{f.name}</span>)}
+              {item.user_tags?.slice(0,4).map(t=><span key={t} className="tag tag-user" style={{fontSize:10}}>{t}</span>)}
+              {item.ai_tags?.slice(0,2).map(t=><span key={t} className="tag tag-ai" style={{fontSize:10}}>{t}</span>)}
+            </div>
+          </div>);}
+          return(<div key={item.id} style={{background:'var(--s1)',border:'1px solid var(--b0)',borderRadius:'var(--rl)',padding:'12px 16px',display:'flex',gap:12,alignItems:'flex-start'}}>
+            <span style={{fontSize:28}}>{fileIcon(item.file_type)}</span>
+            <div><div style={{fontWeight:600,fontSize:13,marginBottom:2}}>{item.name}</div>
+            <div style={{fontSize:11,color:'var(--t3)',fontFamily:'var(--mono)',marginBottom:4}}>{fmtBytes(item.size_bytes)} · {item.file_type?.toUpperCase()}</div>
+            {item.content_extracted&&<div style={{fontSize:11,color:'var(--t2)',fontFamily:'var(--mono)',background:'var(--s2)',padding:'4px 8px',borderRadius:'var(--r)',maxHeight:56,overflow:'hidden'}}>{item.content_extracted.slice(0,200)}</div>}
+            </div>
+          </div>);
+        })}
+      </div>
+    </>}
+  </div>);
+}
+
+// ── DOCS PAGE ─────────────────────────────────────────────────────────────────
+function DocsPage({folders,docs,setDocs,toast,initialDoc}){
+  const[modal,sM]=useState(initialDoc||null);
+  const[view,sV]=useState('grid');const[ff,sFF]=useState(null);const[showDel,sSd]=useState(false);
+  const[sel,sSel]=useState(new Set());const[kanban,sKan]=useState(false);
+  const[filter,sFilter]=useState('all');
+  const filtered=useMemo(()=>docs.filter(d=>(showDel||d.is_active)&&(ff?d.folder_ids?.includes(ff):true)&&(filter==='all'||d.status===filter||( filter==='pinned'&&d.pinned)||(filter==='bookmarked'&&d.bookmarked))),[docs,ff,showDel,filter]);
+  const handleSave=data=>{if(data.id){setDocs(ds=>ds.map(d=>d.id===data.id?{...d,...data,updated_at:new Date().toISOString(),version:(d.version||1)+1,storage_locations:{...d.storage_locations,local:{path:`./data/files/${d.id}/${d.title.slice(0,20)}.md`}}}:d));}else{const nd={...data,id:'d'+Date.now(),is_active:true,pinned:false,bookmarked:false,version:1,ai_tags:[],ai_summary:null,created_at:new Date().toISOString(),updated_at:new Date().toISOString(),storage_locations:{local:{path:`./data/files/new/${data.title.slice(0,20)}.md`},github:null,drive:null}};setDocs(ds=>[nd,...ds]);}toast(data.id?'Document updated':'Document created','success');};
+  const handleDel=id=>{setDocs(ds=>ds.map(d=>d.id===id?{...d,is_active:false,deleted_at:new Date().toISOString()}:d));toast('Moved to trash','warn');};
+  const togglePin=(id,e)=>{e.stopPropagation();setDocs(ds=>ds.map(d=>d.id===id?{...d,pinned:!d.pinned}:d));};
+  const toggleBk=(id,e)=>{e.stopPropagation();setDocs(ds=>ds.map(d=>d.id===id?{...d,bookmarked:!d.bookmarked}:d));};
+  const toggleSel=(id,e)=>{e.stopPropagation();sSel(s=>{const n=new Set(s);n.has(id)?n.delete(id):n.add(id);return n;});};
+  const STATUSES=['Todo','In Progress','In Review','Done'];
+
+  return(<div className="content fade-in">
+    {modal&&<DocModal doc={modal} folders={folders} docs={docs} onClose={()=>sM(null)} onSave={handleSave} onDelete={handleDel}/>}
+    <div className="section-head" style={{marginBottom:16}}>
+      <div style={{display:'flex',alignItems:'center',gap:10}}>
+        <h1 style={{fontSize:20,fontWeight:800,letterSpacing:'-.02em'}}>Documents</h1>
+        <span style={{fontFamily:'var(--mono)',fontSize:11,color:'var(--t3)',background:'var(--s2)',padding:'2px 7px',borderRadius:10}}>{filtered.length}</span>
+      </div>
+      <div style={{display:'flex',gap:6}}>
+        <button className={`btn btn-ghost btn-sm${kanban?' ':''}`} onClick={()=>sKan(!kanban)}>{kanban?'⊞ Grid':'⊟ Board'}</button>
+        <button className="btn btn-primary btn-sm" onClick={()=>sM({})}>+ New</button>
+      </div>
+    </div>
+
+    {/* Filters */}
+    <div style={{display:'flex',gap:8,marginBottom:14,flexWrap:'wrap',alignItems:'center'}}>
+      <div className="tabs">
+        {['all','pinned','bookmarked','Todo','In Progress','In Review','Done'].map(f=><div key={f} className={`tab${filter===f?' on':''}`} onClick={()=>sFilter(f)}>{f==='all'?'All':f}</div>)}
+      </div>
+      <select className="fi" style={{width:'auto',padding:'5px 10px',fontSize:12}} onChange={e=>sFF(e.target.value||null)}>
+        <option value="">All folders</option>
+        {folders.map(f=><option key={f.id} value={f.id}>{f.icon} {f.name}</option>)}
+      </select>
+      <label style={{display:'flex',alignItems:'center',gap:5,fontSize:12,color:'var(--t2)',cursor:'pointer'}}>
+        <input type="checkbox" checked={showDel} onChange={e=>sSd(e.target.checked)}/> Show deleted
+      </label>
+      <div style={{marginLeft:'auto',display:'flex',gap:4}}>
+        {['grid','list'].map(v=><button key={v} className={`btn btn-ghost btn-xs${view===v?' ':''}`} onClick={()=>sV(v)} style={view===v?{borderColor:'var(--ac)',color:'var(--ac)'}:{}}>{v==='grid'?'⊞':'☰'}</button>)}
+      </div>
+    </div>
+
+    {/* Kanban */}
+    {kanban&&<div className="kanban">{STATUSES.map(st=>{const cols=filtered.filter(d=>d.status===st&&d.is_active);return(<div key={st} className="kbcol"><div className="kbh"><span>{st}</span><span style={{fontFamily:'var(--mono)',fontSize:10,color:'var(--t3)'}}>{cols.length}</span></div><div className="kbb">{cols.map(d=><div key={d.id} className="kb-card" onClick={()=>sM(d)}><div style={{fontWeight:600,fontSize:12,marginBottom:5}}>{d.title}</div><div style={{display:'flex',flexWrap:'wrap',gap:3}}>{d.user_tags?.slice(0,3).map(t=><span key={t} className="tag tag-user" style={{fontSize:9}}>{t}</span>)}</div><StorageBadges locations={d.storage_locations}/></div>)}<button className="btn btn-ghost btn-xs" style={{margin:4,width:'calc(100% - 8px)'}} onClick={()=>sM({status:st})}>+ Add</button></div></div>);})}</div>}
+
+    {/* Doc grid/list */}
+    {!kanban&&<>{filtered.length===0&&<div className="empty"><div className="empty-ico">📚</div><div className="empty-txt">No documents</div><div className="empty-hint">Create your first document</div></div>}
+    <div className={view==='grid'?'grid-docs':'list-view'}>
+      {filtered.map(doc=>{
+        const dF=folders.filter(f=>doc.folder_ids?.includes(f.id));
+        const isSel=sel.has(doc.id);
+        return(<div key={doc.id} className={`doc-card${doc.is_active?'':' tombstone'}${isSel?' selected':''}${doc.pinned?' pinned':''}`} onClick={()=>sel.size>0?toggleSel(doc.id,{stopPropagation:()=>{}}):sM(doc)}>
+          <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:6,marginBottom:6}}>
+            <input type="checkbox" checked={isSel} onChange={()=>{}} onClick={e=>toggleSel(doc.id,e)} style={{marginTop:2,accentColor:'var(--ac)',flexShrink:0}}/>
+            <div style={{flex:1,fontWeight:600,fontSize:13,lineHeight:1.3}}>{doc.title}</div>
+            <span className={`tag-status ${statusClass(doc.status)}`}>{doc.status}</span>
+          </div>
+          {doc.ai_summary&&<div style={{fontSize:11,color:'var(--t2)',lineHeight:1.4,marginBottom:7,fontStyle:'italic',paddingLeft:20}}>"{doc.ai_summary}"</div>}
+          <div style={{display:'flex',gap:5,flexWrap:'wrap',alignItems:'center',paddingLeft:20,marginBottom:5}}>
+            {dF.slice(0,2).map(f=><span key={f.id} style={{fontSize:10,color:f.color,fontFamily:'var(--mono)'}}>{f.icon}{f.name}</span>)}
+            {doc.user_tags?.slice(0,3).map(t=><span key={t} className="tag tag-user" style={{fontSize:10}}>{t}</span>)}
+            {doc.ai_tags?.slice(0,1).map(t=><span key={t} className="tag tag-ai" style={{fontSize:10}}>{t}</span>)}
+          </div>
+          <div style={{display:'flex',alignItems:'center',gap:8,paddingLeft:20}}>
+            <StorageBadges locations={doc.storage_locations}/>
+            <span style={{marginLeft:'auto',fontFamily:'var(--mono)',fontSize:10,color:'var(--t3)'}}>{tAgo(doc.updated_at)} · v{doc.version||1}</span>
+            <button className={`btn btn-xs${doc.pinned?'':' btn-ghost'}`} onClick={e=>togglePin(doc.id,e)} style={doc.pinned?{background:'var(--ord)',color:'var(--or)',border:'1px solid rgba(249,115,22,.2)'}:{}} title="Pin">📌</button>
+            <button className={`btn btn-xs${doc.bookmarked?'':' btn-ghost'}`} onClick={e=>toggleBk(doc.id,e)} style={doc.bookmarked?{background:'var(--bld)',color:'var(--bl)',border:'1px solid rgba(59,130,246,.2)'}:{}} title="Bookmark">🔖</button>
+          </div>
+        </div>);
+      })}
+    </div></>}
+
+    {sel.size>0&&<div className="sel-bar">
+      <span style={{fontFamily:'var(--mono)',fontSize:12}}>{sel.size} selected</span>
+      <button className="btn btn-ghost btn-sm" onClick={()=>{setDocs(ds=>ds.map(d=>sel.has(d.id)?{...d,pinned:true}:d));toast(sel.size+' pinned','success');sSel(new Set());}}>📌 Pin all</button>
+      <button className="btn btn-danger btn-sm" onClick={()=>{setDocs(ds=>ds.map(d=>sel.has(d.id)?{...d,is_active:false}:d));toast(sel.size+' deleted','warn');sSel(new Set());}}>🗑 Delete</button>
+      <button className="btn btn-ghost btn-xs" onClick={()=>sSel(new Set())}>✕</button>
+    </div>}
+  </div>);
+}
+
+// ── FILES PAGE ────────────────────────────────────────────────────────────────
+function FilesPage({files,setFiles,folders,toast,storageConfig}){
+  const[dragging,sDrag]=useState(false);const[sel,sSel]=useState(new Set());const[view,sV]=useState('grid');
+  const[filter,sFilter]=useState('');const[uploading,sUploading]=useState(false);
+  const ref=useRef();
+  const activeBackends=(storageConfig?.active_backends)||['local'];
+
+  const handleDrop=async e=>{
+    e.preventDefault();sDrag(false);
+    const dropped=[...e.dataTransfer.files];if(!dropped.length)return;
+    sUploading(true);
+    setTimeout(()=>{
+      const newFiles=dropped.map(f=>({id:'fi'+Date.now()+Math.random(),name:f.name,file_type:f.name.split('.').pop()||'bin',mime_type:f.type||'application/octet-stream',size_bytes:f.size,content_extracted:'',tags:[f.name.split('.').pop()],folder_ids:[],uploaded_at:new Date().toISOString(),storage_locations:{local:activeBackends.includes('local')?{path:`./data/files/${f.name}`}:null,github:activeBackends.includes('github')?{url:'https://github.com/org/repo'}:null,drive:activeBackends.includes('drive')?{drive_id:'new',url:'https://drive.google.com'}:null}}));
+      setFiles(fs=>[...newFiles,...fs]);
+      toast(`Uploaded ${dropped.length} file(s) → ${activeBackends.join(', ')}`,'success');
+      sUploading(false);
+    },800);
+  };
+
+  const filtered=files.filter(f=>!filter||f.name.toLowerCase().includes(filter.toLowerCase())||f.tags?.some(t=>t.includes(filter)));
+  const totalBytes=files.reduce((s,f)=>s+f.size_bytes,0);
+
+  return(<div className="content fade-in">
+    <div className="section-head" style={{marginBottom:14}}>
+      <div style={{display:'flex',alignItems:'center',gap:10}}>
+        <h1 style={{fontSize:20,fontWeight:800,letterSpacing:'-.02em'}}>Files</h1>
+        <span style={{fontFamily:'var(--mono)',fontSize:11,color:'var(--t3)',background:'var(--s2)',padding:'2px 7px',borderRadius:10}}>{files.length} · {fmtBytes(totalBytes)}</span>
+      </div>
+      <div style={{display:'flex',gap:4}}>
+        {['grid','list'].map(v=><button key={v} className={`btn btn-ghost btn-xs${view===v?' ':''}`} onClick={()=>sV(v)} style={view===v?{borderColor:'var(--ac)',color:'var(--ac)'}:{}}>{v==='grid'?'⊞':'☰'}</button>)}
+        <button className="btn btn-primary btn-sm" onClick={()=>ref.current?.click()}>⬆ Upload</button>
+        <input ref={ref} type="file" multiple style={{display:'none'}} onChange={e=>handleDrop({preventDefault:()=>{},dataTransfer:{files:[...e.target.files]}})}/>
+      </div>
+    </div>
+
+    {/* Storage info bar */}
+    <div style={{background:'var(--s1)',border:'1px solid var(--b0)',borderRadius:'var(--r)',padding:'8px 14px',marginBottom:14,display:'flex',alignItems:'center',gap:8,fontSize:12,fontFamily:'var(--mono)',color:'var(--t2)'}}>
+      <span>📦 Files save to:</span>
+      {activeBackends.includes('local')&&<span className="store-badge sb-local">💾 Local PC</span>}
+      {activeBackends.includes('github')&&<span className="store-badge sb-github">🐙 GitHub</span>}
+      {activeBackends.includes('drive')&&<span className="store-badge sb-drive">☁️ Drive</span>}
+      {activeBackends.length===0&&<span style={{color:'var(--rd)'}}>⚠ No backends enabled</span>}
+    </div>
+
+    {/* Search */}
+    <div style={{position:'relative',marginBottom:14}}>
+      <span style={{position:'absolute',left:10,top:'50%',transform:'translateY(-50%)',pointerEvents:'none',color:'var(--t3)'}}>🔍</span>
+      <input className="fi" style={{paddingLeft:34}} value={filter} onChange={e=>sFilter(e.target.value)} placeholder="Filter by name or tag…"/>
+    </div>
+
+    {/* Dropzone */}
+    <div className={`dropzone${dragging?' over':''}`} style={{marginBottom:16}} onDragOver={e=>{e.preventDefault();sDrag(true);}} onDragLeave={()=>sDrag(false)} onDrop={handleDrop} onClick={()=>ref.current?.click()}>
+      {uploading?<><div className="spinner" style={{margin:'0 auto 10px'}}/><div className="dz-text">Uploading<span className="dot-pulse"/></div></>:<><div className="dz-icon">📂</div><div className="dz-text">Drop files here or click to upload</div><div className="dz-hint">Saves to: {activeBackends.join(' + ')||'no backend enabled'} · max 100MB per file</div></>}
+    </div>
+
+    {/* Files */}
+    {filtered.length===0?<div className="empty"><div className="empty-ico">📁</div><div className="empty-txt">No files</div><div className="empty-hint">Upload files to index and search them</div></div>
+    :<div className={view==='grid'?'grid-files':'list-view'}>
+      {filtered.map(f=>{
+        const isSel=sel.has(f.id);
+        if(view==='list')return(<div key={f.id} style={{background:'var(--s1)',border:'1px solid var(--b0)',borderRadius:'var(--r)',padding:'10px 14px',display:'flex',alignItems:'center',gap:12}}>
+          <input type="checkbox" checked={isSel} onChange={()=>sSel(s=>{const n=new Set(s);n.has(f.id)?n.delete(f.id):n.add(f.id);return n;})} style={{accentColor:'var(--ac)'}}/>
+          <span style={{fontSize:22}}>{fileIcon(f.file_type)}</span>
+          <div style={{flex:1}}><div style={{fontSize:13,fontWeight:600}}>{f.name}</div><div style={{fontSize:11,color:'var(--t3)',fontFamily:'var(--mono)'}}>{fmtBytes(f.size_bytes)} · {f.file_type?.toUpperCase()} · {tAgo(f.uploaded_at)}</div></div>
+          <StorageBadges locations={f.storage_locations}/>
+          <div style={{display:'flex',gap:4}}>
+            <button className="btn btn-ghost btn-xs" onClick={()=>toast('Download started','info')}>⬇</button>
+            <button className="btn btn-danger btn-xs" onClick={()=>{setFiles(fs=>fs.filter(x=>x.id!==f.id));toast('File deleted','warn');}}>🗑</button>
+          </div>
+        </div>);
+        return(<div key={f.id} className={`file-card${isSel?' selected':''}`} onClick={()=>sSel(s=>{const n=new Set(s);n.has(f.id)?n.delete(f.id):n.add(f.id);return n;})}>
+          <div className="file-icon" style={{color:fileColor(f.file_type)}}>{fileIcon(f.file_type)}</div>
+          <div className="file-name">{f.name}</div>
+          <div className="file-size">{fmtBytes(f.size_bytes)}</div>
+          <div className="file-type-badge" style={{background:fileColor(f.file_type)+'22',color:fileColor(f.file_type)}}>{f.file_type?.toUpperCase()}</div>
+          <StorageBadges locations={f.storage_locations}/>
+        </div>);
+      })}
+    </div>}
+
+    {sel.size>0&&<div className="sel-bar">
+      <span style={{fontFamily:'var(--mono)',fontSize:12}}>{sel.size} selected</span>
+      <button className="btn btn-ghost btn-sm" onClick={()=>toast('Download ZIP coming','info')}>⬇ Download ZIP</button>
+      <button className="btn btn-danger btn-sm" onClick={()=>{setFiles(fs=>fs.filter(f=>!sel.has(f.id)));toast(sel.size+' deleted','warn');sSel(new Set());}}>🗑 Delete</button>
+      <button className="btn btn-ghost btn-xs" onClick={()=>sSel(new Set())}>✕</button>
+    </div>}
+  </div>);
+}
+
+// ── STORAGE PAGE (NEW) ────────────────────────────────────────────────────────
+function StoragePage({storageConfig,setStorageConfig,toast,docs,files}){
+  const[cfg,setCfg]=useState(storageConfig||DEMO_STORAGE);
+  const[testing,sTesting]=useState({});const[migrating,sMig]=useState(false);
+  const[tab,sTab]=useState('backends');
+  const[diskUsage]=useState({free_gb:127.4,total_gb:256,used_gb:128.6});
+
+  const toggle=async(backend)=>{
+    const cur=cfg.config[backend].enabled;
+    const newCfg={...cfg,config:{...cfg.config,[backend]:{...cfg.config[backend],enabled:!cur}}};
+    const newActive=Object.entries(newCfg.config).filter(([,v])=>v.enabled).map(([k])=>k);
+    if(newActive.length===0){toast('Cannot disable all backends — keeping at least one','warn');return;}
+    newCfg.active_backends=newActive;
+    newCfg.cost_estimate={active:newActive,notes:newActive.map(b=>b==='local'?'Local: FREE (disk only)':b==='github'?'GitHub: FREE for public repos':'Drive: FREE up to 15 GB')};
+    setCfg(newCfg);setStorageConfig(newCfg);
+    toast(`${backend.charAt(0).toUpperCase()+backend.slice(1)} storage ${!cur?'enabled':'disabled'}`,'success');
+  };
+
+  const testBackend=async(b)=>{
+    sTesting(t=>({...t,[b]:true}));
+    await new Promise(r=>setTimeout(r,1200));
+    sTesting(t=>({...t,[b]:false}));
+    toast(`${b} backend: ${b==='local'?'Connected ✓':'Check your credentials'}`,b==='local'?'success':'warn');
+  };
+
+  const syncFile=async()=>{
+    sMig(true);await new Promise(r=>setTimeout(r,2000));sMig(false);
+    toast('Migration complete — all files pushed to active backends','success');
+  };
+
+  const backends=[
+    {key:'local',icon:'💾',name:'Local PC',color:'#22c55e',bgColor:'rgba(34,197,94,.08)',desc:'Stores files on your computer\'s filesystem. Zero cost, works offline, fastest access. Files saved to LOCAL_STORAGE_DIR.',detail:`Path: ${cfg.config.local?.base_dir||'./data/files'}`,cost:'Free'},
+    {key:'github',icon:'🐙',name:'GitHub Repository',color:'#e4e4e7',bgColor:'rgba(255,255,255,.04)',desc:'Commits uploaded files to a GitHub repository. Free for public repos. Files versioned by Git. Requires GITHUB_TOKEN and GITHUB_REPO.',detail:cfg.config.github?.repo?`Repo: ${cfg.config.github.repo} (${cfg.config.github.branch||'main'}) → ${cfg.config.github.path||'uploads'}/`:'Not configured — add GITHUB_TOKEN and GITHUB_REPO to .env',cost:'Free (public) / Git LFS charges for large binary files'},
+    {key:'drive',icon:'☁️',name:'Google Drive',color:'#3b82f6',bgColor:'rgba(59,130,246,.07)',desc:'Uploads files to Google Drive via service account. Free up to 15 GB. Accessible anywhere. Requires service account credentials.',detail:cfg.config.drive?.folder_id?`Folder ID: ${cfg.config.drive.folder_id}`:'Not configured — add GOOGLE_DRIVE_CREDENTIALS to .env',cost:'Free up to 15 GB · Google One pricing above that'},
+  ];
+
+  const localPct=Math.round((diskUsage.used_gb/diskUsage.total_gb)*100);
+
+  return(<div className="content fade-in">
+    <div className="section-head" style={{marginBottom:6}}>
+      <div><h1 style={{fontSize:20,fontWeight:800,letterSpacing:'-.02em'}}>Storage</h1><p style={{fontSize:12,color:'var(--t2)',fontFamily:'var(--mono)',marginTop:2}}>Files save to all enabled backends simultaneously</p></div>
+      <div style={{display:'flex',gap:6}}>
+        <button className="btn btn-ghost btn-sm" onClick={syncFile} disabled={migrating}>{migrating?<><span className="spinner"/>Migrating…</>:'🔄 Migrate All'}</button>
+      </div>
+    </div>
+
+    <div style={{marginBottom:16}}>
+      <div className="tabs">{['backends','usage','settings'].map(t=><div key={t} className={`tab${tab===t?' on':''}`} onClick={()=>sTab(t)} style={{textTransform:'capitalize'}}>{t}</div>)}</div>
+    </div>
+
+    {tab==='backends'&&<>
+      {/* Active status row */}
+      <div style={{background:'var(--s1)',border:'1px solid var(--b0)',borderRadius:'var(--rl)',padding:'12px 16px',marginBottom:14,display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+        <span style={{fontSize:11,fontWeight:700,fontFamily:'var(--mono)',color:'var(--t3)',letterSpacing:'.08em',textTransform:'uppercase'}}>Active:</span>
+        {cfg.active_backends.length===0?<span style={{color:'var(--rd)',fontFamily:'var(--mono)',fontSize:12}}>⚠ None — data not saved externally</span>:cfg.active_backends.map(b=>{const ba=backends.find(x=>x.key===b);return(<span key={b} style={{display:'inline-flex',alignItems:'center',gap:5,padding:'3px 10px',borderRadius:'var(--r)',background:ba?.bgColor,border:`1px solid ${ba?.color}44`,fontFamily:'var(--mono)',fontSize:11,fontWeight:600,color:ba?.color}}><div className="sdot on"/>{ba?.icon} {ba?.name}</span>);})}
+        <span style={{marginLeft:'auto',fontSize:11,color:'var(--t3)',fontFamily:'var(--mono)'}}>Cost: {cfg.cost_estimate?.notes?.join(' · ')||'—'}</span>
+      </div>
+
+      {/* Backend cards */}
+      <div className="storage-panel">
+        {backends.map((b,i)=>{const on=cfg.config[b.key]?.enabled;return(<div key={b.key} className="storage-backend" style={{background:on?b.bgColor:'transparent'}}>
+          <div className="sb-icon" style={{background:b.bgColor,border:`1px solid ${b.color}33`}}>{b.icon}</div>
+          <div className="sb-info">
+            <div className="sb-name">
+              <span style={{color:on?b.color:'var(--t1)'}}>{b.name}</span>
+              {on&&<span style={{fontFamily:'var(--mono)',fontSize:9,padding:'1px 6px',borderRadius:4,background:`${b.color}22`,color:b.color,fontWeight:500}}>ACTIVE</span>}
+              <span style={{fontFamily:'var(--mono)',fontSize:10,color:'var(--t3)',marginLeft:4}}>{b.cost}</span>
+            </div>
+            <div className="sb-desc">{b.desc}</div>
+            <div className="sb-meta" style={{color:on?b.color+'88':'var(--t3)'}}>{b.detail}</div>
+            {on&&<div style={{marginTop:6,display:'flex',gap:6}}>
+              <button className="btn btn-ghost btn-xs" onClick={()=>testBackend(b.key)} disabled={testing[b.key]}>{testing[b.key]?<><span className="spinner"/>Testing…</>:'Test Connection'}</button>
+            </div>}
+          </div>
+          <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:6}}>
+            <div className={`toggle${on?' on':''}`} onClick={()=>toggle(b.key)} title={on?'Disable':'Enable'}/>
+            <span style={{fontFamily:'var(--mono)',fontSize:10,color:on?'var(--gn)':'var(--t3)'}}>{on?'ON':'OFF'}</span>
+          </div>
+        </div>);})}
+      </div>
+
+      <div style={{marginTop:12,padding:'10px 14px',background:'var(--s1)',border:'1px solid var(--b0)',borderRadius:'var(--r)',fontSize:11,color:'var(--t3)',fontFamily:'var(--mono)',lineHeight:1.7}}>
+        💡 <strong style={{color:'var(--t2)'}}>When multiple backends are active:</strong> Files are written to all of them simultaneously on upload. Downloads try Local first (fastest), then GitHub, then Drive. Toggle at any time — no restart required. Use "Migrate All" to push existing files to newly-enabled backends.
+      </div>
+    </>}
+
+    {tab==='usage'&&<>
+      <div className="grid-stats" style={{marginBottom:16}}>
+        <div className="stat-card c-ac"><div className="stat-val">{docs.filter(d=>d.is_active).length}</div><div className="stat-label">Documents</div></div>
+        <div className="stat-card c-gn"><div className="stat-val">{files.length}</div><div className="stat-label">Files</div><div className="stat-sub">{fmtBytes(files.reduce((s,f)=>s+f.size_bytes,0))}</div></div>
+        <div className="stat-card c-bl"><div className="stat-val">{diskUsage.free_gb.toFixed(1)} GB</div><div className="stat-label">Local Free</div><div className="stat-sub">of {diskUsage.total_gb} GB total</div></div>
+        <div className="stat-card c-or"><div className="stat-val">{cfg.active_backends.length}</div><div className="stat-label">Active Backends</div></div>
+      </div>
+
+      <div className="card" style={{marginBottom:12}}>
+        <div style={{display:'flex',justifyContent:'space-between',marginBottom:8}}>
+          <span style={{fontSize:13,fontWeight:600}}>💾 Local Disk</span>
+          <span style={{fontFamily:'var(--mono)',fontSize:12,color:'var(--t2)'}}>{diskUsage.used_gb.toFixed(1)} / {diskUsage.total_gb} GB ({localPct}%)</span>
+        </div>
+        <div className="prog-bar" style={{height:8,marginBottom:6}}><div className="prog-fill" style={{width:`${localPct}%`,background:localPct>80?'var(--rd)':localPct>60?'var(--or)':'var(--ac)'}}/></div>
+        <div style={{fontSize:11,color:'var(--t3)',fontFamily:'var(--mono)'}}>{diskUsage.free_gb.toFixed(1)} GB free · AKRS files: {fmtBytes(files.reduce((s,f)=>s+f.size_bytes,0))}</div>
+      </div>
+
+      <div className="card">
+        <div style={{fontSize:13,fontWeight:600,marginBottom:12}}>Storage per file type</div>
+        {Object.entries(files.reduce((acc,f)=>{acc[f.file_type]=(acc[f.file_type]||0)+f.size_bytes;return acc;},{})).sort(([,a],[,b])=>b-a).map(([type,bytes])=>{const pct=Math.round(bytes/Math.max(1,files.reduce((s,f)=>s+f.size_bytes,0))*100);return(<div key={type} style={{marginBottom:8}}><div style={{display:'flex',justifyContent:'space-between',fontSize:12,marginBottom:4}}><span style={{color:fileColor(type),fontFamily:'var(--mono)',fontWeight:500}}>{fileIcon(type)} {type.toUpperCase()}</span><span style={{color:'var(--t3)',fontFamily:'var(--mono)'}}>{fmtBytes(bytes)}</span></div><div className="prog-bar"><div className="prog-fill" style={{width:`${pct}%`,background:fileColor(type)}}/></div></div>);})}
+      </div>
+    </>}
+
+    {tab==='settings'&&<>
+      <div className="card" style={{marginBottom:12}}>
+        <div style={{fontSize:13,fontWeight:700,marginBottom:12,fontFamily:'var(--mono)',letterSpacing:'.04em',textTransform:'uppercase',color:'var(--t2)'}}>Local Storage</div>
+        <div className="fg"><label className="fl">Storage Directory</label><input className="fi fi-mono" value={cfg.config.local?.base_dir||'./data/files'} onChange={e=>setCfg(c=>({...c,config:{...c.config,local:{...c.config.local,base_dir:e.target.value}}})}/><div className="fhelp">Files saved to this path on your PC</div></div>
+      </div>
+      <div className="card" style={{marginBottom:12}}>
+        <div style={{fontSize:13,fontWeight:700,marginBottom:12,fontFamily:'var(--mono)',letterSpacing:'.04em',textTransform:'uppercase',color:'var(--t2)'}}>GitHub</div>
+        <div className="fr2">
+          <div className="fg"><label className="fl">Repository (owner/repo)</label><input className="fi fi-mono" value={cfg.config.github?.repo||''} onChange={e=>setCfg(c=>({...c,config:{...c.config,github:{...c.config.github,repo:e.target.value}}}))} placeholder="org/knowledge-base"/></div>
+          <div className="fg"><label className="fl">Branch</label><input className="fi fi-mono" value={cfg.config.github?.branch||'main'} onChange={e=>setCfg(c=>({...c,config:{...c.config,github:{...c.config.github,branch:e.target.value}}})}/></div>
+        </div>
+        <div className="fg"><label className="fl">Upload Path (folder in repo)</label><input className="fi fi-mono" value={cfg.config.github?.path||'uploads'} onChange={e=>setCfg(c=>({...c,config:{...c.config,github:{...c.config.github,path:e.target.value}}}))}/></div>
+        <div style={{background:'var(--s2)',borderRadius:'var(--r)',padding:'8px 12px',fontSize:11,color:'var(--t3)',fontFamily:'var(--mono)'}}>Set GITHUB_TOKEN in .env — requires "repo" scope for private repos</div>
+      </div>
+      <div className="card" style={{marginBottom:12}}>
+        <div style={{fontSize:13,fontWeight:700,marginBottom:12,fontFamily:'var(--mono)',letterSpacing:'.04em',textTransform:'uppercase',color:'var(--t2)'}}>Google Drive</div>
+        <div className="fg"><label className="fl">Folder ID (leave blank for root)</label><input className="fi fi-mono" value={cfg.config.drive?.folder_id||''} onChange={e=>setCfg(c=>({...c,config:{...c.config,drive:{...c.config.drive,folder_id:e.target.value}}}))} placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs..."/></div>
+        <div style={{background:'var(--s2)',borderRadius:'var(--r)',padding:'8px 12px',fontSize:11,color:'var(--t3)',fontFamily:'var(--mono)'}}>Set GOOGLE_DRIVE_CREDENTIALS to service account JSON path in .env. Uncomment google-api-python-client in requirements.txt.</div>
+      </div>
+      <div style={{display:'flex',gap:8}}>
+        <button className="btn btn-primary" onClick={()=>{setStorageConfig(cfg);toast('Storage settings saved','success');}}>Save Settings</button>
+        <button className="btn btn-ghost" onClick={()=>setCfg(storageConfig||DEMO_STORAGE)}>Reset</button>
+      </div>
+    </>}
+  </div>);
+}
+
+// ── ANALYTICS PAGE ────────────────────────────────────────────────────────────
+function AnalyticsPage({docs,files}){
+  const active=docs.filter(d=>d.is_active);
+  const aiDone=active.filter(d=>d.ai_summary||d.ai_tags?.length>0).length;
+  const byStatus=(['Todo','In Progress','In Review','Done']).map(s=>({s,n:active.filter(d=>d.status===s).length}));
+  const totalBytes=files.reduce((s,f)=>s+f.size_bytes,0);
+  const byType=Object.entries(files.reduce((a,f)=>{a[f.file_type]=(a[f.file_type]||0)+1;return a;},{})).sort(([,a],[,b])=>b-a);
+  const storeDist=[
+    {label:'Local only',n:docs.filter(d=>d.is_active&&d.storage_locations?.local&&!d.storage_locations?.github&&!d.storage_locations?.drive).length,color:'var(--gn)'},
+    {label:'GitHub only',n:docs.filter(d=>d.is_active&&d.storage_locations?.github&&!d.storage_locations?.local).length,color:'var(--t1)'},
+    {label:'Drive only',n:docs.filter(d=>d.is_active&&d.storage_locations?.drive&&!d.storage_locations?.local).length,color:'var(--bl)'},
+    {label:'Multi-location',n:docs.filter(d=>d.is_active&&((d.storage_locations?.local?1:0)+(d.storage_locations?.github?1:0)+(d.storage_locations?.drive?1:0))>1).length,color:'var(--pu)'},
+    {label:'Not saved',n:docs.filter(d=>d.is_active&&!d.storage_locations?.local&&!d.storage_locations?.github&&!d.storage_locations?.drive).length,color:'var(--rd)'},
+  ];
+
+  return(<div className="content fade-in">
+    <h1 style={{fontSize:20,fontWeight:800,letterSpacing:'-.02em',marginBottom:20}}>Analytics</h1>
+    <div className="grid-stats" style={{marginBottom:20}}>
+      {[
+        {val:active.length,label:'Active Docs',cls:'c-ac'},{val:files.length,label:'Files',sub:fmtBytes(totalBytes),cls:'c-gn'},
+        {val:aiDone,label:'AI Enriched',sub:active.length?Math.round(aiDone/active.length*100)+'%':'0%',cls:'c-pu'},
+        {val:active.filter(d=>d.pinned).length,label:'Pinned',cls:'c-or'},
+        {val:active.filter(d=>d.bookmarked).length,label:'Bookmarked',cls:'c-bl'},
+        {val:docs.filter(d=>!d.is_active).length,label:'Archived',cls:'c-cy'},
+      ].map(s=><div key={s.label} className={`stat-card ${s.cls}`}><div className="stat-val">{s.val}</div><div className="stat-label">{s.label}</div>{s.sub&&<div className="stat-sub">{s.sub}</div>}</div>)}
+    </div>
+
+    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:14}}>
+      {/* Status breakdown */}
+      <div className="card">
+        <div className="section-title" style={{marginBottom:12}}>By Status</div>
+        {byStatus.map(({s,n})=>{const colors={'Todo':'var(--t2)','In Progress':'var(--bl)','In Review':'var(--or)','Done':'var(--gn)'};const pct=active.length?Math.round(n/active.length*100):0;return(<div key={s} style={{marginBottom:10}}><div style={{display:'flex',justifyContent:'space-between',fontSize:12,marginBottom:3}}><span style={{color:colors[s],fontWeight:600}}>{s}</span><span style={{fontFamily:'var(--mono)',color:'var(--t3)'}}>{n} ({pct}%)</span></div><div className="prog-bar"><div className="prog-fill" style={{width:`${pct}%`,background:colors[s]}}/></div></div>);})}</div>
+
+      {/* File types */}
+      <div className="card">
+        <div className="section-title" style={{marginBottom:12}}>File Types</div>
+        {byType.slice(0,6).map(([t,n])=><div key={t} style={{display:'flex',alignItems:'center',gap:8,marginBottom:7}}><span style={{fontSize:16}}>{fileIcon(t)}</span><span style={{flex:1,fontSize:12,fontFamily:'var(--mono)',color:fileColor(t),fontWeight:500}}>{t.toUpperCase()}</span><span style={{fontFamily:'var(--mono)',fontSize:11,color:'var(--t3)'}}>{n}</span></div>)}
+        {files.length===0&&<div style={{color:'var(--t3)',fontSize:12,fontFamily:'var(--mono)'}}>No files uploaded</div>}
+      </div>
+
+      {/* Storage distribution */}
+      <div className="card">
+        <div className="section-title" style={{marginBottom:12}}>Storage Distribution</div>
+        {storeDist.map(({label,n,color})=>{const pct=active.length?Math.round(n/active.length*100):0;return(<div key={label} style={{marginBottom:8}}><div style={{display:'flex',justifyContent:'space-between',fontSize:11,marginBottom:3}}><span style={{color,fontFamily:'var(--mono)',fontWeight:500}}>{label}</span><span style={{color:'var(--t3)',fontFamily:'var(--mono)'}}>{n}</span></div><div className="prog-bar"><div className="prog-fill" style={{width:`${Math.max(pct,2)}%`,background:color}}/></div></div>);})}</div>
+    </div>
+
+    {/* AI coverage */}
+    <div className="card" style={{marginTop:14}}>
+      <div className="section-title" style={{marginBottom:12}}>AI Pipeline Coverage</div>
+      <div style={{display:'flex',alignItems:'center',gap:16}}>
+        <div style={{flex:1}}><div style={{display:'flex',justifyContent:'space-between',fontSize:12,marginBottom:4}}><span style={{color:'var(--pu)'}}>AI Enriched</span><span style={{fontFamily:'var(--mono)',color:'var(--t2)'}}>{aiDone} / {active.length}</span></div><div className="prog-bar" style={{height:8}}><div className="prog-fill" style={{width:`${active.length?aiDone/active.length*100:0}%`,background:'var(--pu)'}}/></div></div>
+        <div style={{fontFamily:'var(--mono)',fontSize:28,fontWeight:500,color:'var(--pu)'}}>{active.length?Math.round(aiDone/active.length*100):0}%</div>
+      </div>
+    </div>
+  </div>);
+}
+
+// ── FOLDERS PAGE ──────────────────────────────────────────────────────────────
+function FoldersPage({folders,setFolders,docs,files,toast}){
+  const[modal,sM]=useState(null);const[name,sName]=useState('');const[color,sColor]=useState('#3b82f6');const[icon,sIcon]=useState('📁');
+  const saveFolder=()=>{if(!name.trim())return;const nf={id:'f'+Date.now(),name,slug:name.toLowerCase().replace(/\s+/g,'-'),color,icon,is_active:true};setFolders(fs=>[...fs,nf]);sM(null);sName('');toast('Folder created','success');};
+  const icons=['📁','⚙️','🔐','⚡','🚀','🏗️','📚','🔬','🎨','💡','🌐','🔧','📊','🗄️'];
+  const colors=['#3b82f6','#22c55e','#ef4444','#f59e0b','#8b5cf6','#06b6d4','#ec4899','#f97316'];
+  return(<div className="content fade-in">
+    {modal&&<div className="overlay"><div className="modal modal-sm fade-in" onClick={e=>e.stopPropagation()}>
+      <div className="modal-head"><span className="modal-title">New Folder</span><button className="btn btn-ghost btn-sm" onClick={()=>sM(null)}>✕</button></div>
+      <div className="modal-body">
+        <div className="fg"><label className="fl">Name</label><input className="fi" value={name} onChange={e=>sName(e.target.value)} placeholder="Folder name…" autoFocus/></div>
+        <div className="fg"><label className="fl">Icon</label><div style={{display:'flex',flexWrap:'wrap',gap:6}}>{icons.map(ic=><div key={ic} onClick={()=>sIcon(ic)} style={{width:36,height:36,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:'var(--r)',border:`2px solid ${icon===ic?'var(--ac)':'var(--b0)'}`,cursor:'pointer',fontSize:18,background:icon===ic?'var(--acd)':'var(--s2)'}}>{ic}</div>)}</div></div>
+        <div className="fg"><label className="fl">Color</label><div style={{display:'flex',gap:6}}>{colors.map(c=><div key={c} onClick={()=>sColor(c)} style={{width:26,height:26,borderRadius:4,background:c,cursor:'pointer',border:`2px solid ${color===c?'var(--t0)':'transparent'}`,transition:'border .1s'}}/> )}</div></div>
+      </div>
+      <div className="modal-foot"><button className="btn btn-ghost btn-sm" onClick={()=>sM(null)}>Cancel</button><button className="btn btn-primary btn-sm" onClick={saveFolder}>Create</button></div>
+    </div></div>}
+    <div className="section-head" style={{marginBottom:16}}><h1 style={{fontSize:20,fontWeight:800,letterSpacing:'-.02em'}}>Folders</h1><button className="btn btn-primary btn-sm" onClick={()=>sM(true)}>+ New Folder</button></div>
+    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))',gap:12}}>
+      {folders.map(f=>{const dc=docs.filter(d=>d.is_active&&d.folder_ids?.includes(f.id)).length;const fc=files.filter(fi=>fi.folder_ids?.includes(f.id)).length;return(<div key={f.id} style={{background:'var(--s1)',border:`1px solid ${f.color}44`,borderRadius:'var(--rl)',padding:'16px',cursor:'pointer',transition:'all .15s'}} onMouseEnter={e=>e.currentTarget.style.borderColor=f.color} onMouseLeave={e=>e.currentTarget.style.borderColor=f.color+'44'}>
+        <div style={{fontSize:28,marginBottom:8}}>{f.icon}</div>
+        <div style={{fontWeight:700,fontSize:14,color:f.color,marginBottom:2}}>{f.name}</div>
+        <div style={{fontFamily:'var(--mono)',fontSize:11,color:'var(--t3)'}}>{dc} docs · {fc} files</div>
+        <div style={{height:3,background:f.color+'22',borderRadius:2,marginTop:10,overflow:'hidden'}}><div style={{height:'100%',width:`${Math.min((dc+fc)*10,100)}%`,background:f.color,borderRadius:2}}/></div>
+      </div>);})}
+    </div>
+  </div>);
+}
+
+// ── SETTINGS PAGE ─────────────────────────────────────────────────────────────
+function SettingsPage({theme,setTheme,apiBase,setApiBase,toast}){
+  const[url,sUrl]=useState(apiBase);const[testing,sTesting]=useState(false);const[status,setStatus]=useState(null);
+  const test=async()=>{sTesting(true);try{const r=await fetch(url.replace('/api/v1','')+'/health');const d=await r.json();setStatus(d);toast(`Backend: ${d.status} (${d.db_mode})`,'success');}catch(e){setStatus(null);toast('Cannot reach backend: '+e.message,'error');}finally{sTesting(false);}};
+  return(<div className="content fade-in" style={{maxWidth:640}}>
+    <h1 style={{fontSize:20,fontWeight:800,letterSpacing:'-.02em',marginBottom:20}}>Settings</h1>
+
+    <div className="card" style={{marginBottom:12}}>
+      <div style={{fontFamily:'var(--mono)',fontSize:11,fontWeight:700,letterSpacing:'.08em',textTransform:'uppercase',color:'var(--t2)',marginBottom:12}}>Appearance</div>
+      <div className="set-row"><div><div className="set-lbl">Dark Mode</div><div className="set-desc">Toggle light/dark theme</div></div><div className={`toggle${theme==='dark'?' on':''}`} onClick={()=>setTheme(theme==='dark'?'light':'dark')}/></div>
+    </div>
+
+    <div className="card" style={{marginBottom:12}}>
+      <div style={{fontFamily:'var(--mono)',fontSize:11,fontWeight:700,letterSpacing:'.08em',textTransform:'uppercase',color:'var(--t2)',marginBottom:12}}>Backend Connection</div>
+      <div className="fg"><label className="fl">API Base URL</label>
+        <div style={{display:'flex',gap:8}}>
+          <input className="fi fi-mono" value={url} onChange={e=>sUrl(e.target.value)} placeholder="http://localhost:8000/api/v1" style={{flex:1}}/>
+          <button className="btn btn-ghost btn-sm" onClick={test} disabled={testing}>{testing?<><span className="spinner"/>…</>:'Test'}</button>
+          <button className="btn btn-primary btn-sm" onClick={()=>{setApiBase(url);toast('API URL saved','success');}}>Save</button>
+        </div>
+        <div className="fhelp">Default: http://localhost:8000/api/v1 · Run python start.py to start the backend</div>
+      </div>
+      {status&&<div style={{background:'var(--gnd)',border:'1px solid rgba(34,197,94,.2)',borderRadius:'var(--r)',padding:'10px 14px',fontSize:12,fontFamily:'var(--mono)',color:'var(--gn)',lineHeight:1.7}}>
+        ✓ Connected · DB: {status.db_mode} · AI: {status.ai_provider} · Storage: {status.storage_backends?.join(', ')||'—'}
+      </div>}
+    </div>
+
+    <div className="card" style={{marginBottom:12}}>
+      <div style={{fontFamily:'var(--mono)',fontSize:11,fontWeight:700,letterSpacing:'.08em',textTransform:'uppercase',color:'var(--t2)',marginBottom:12}}>Quick Start</div>
+      {[
+        {label:'Run on PC (SQLite + local storage)',cmd:'python start.py'},
+        {label:'Run with hot-reload',cmd:'python start.py --reload'},
+        {label:'Reset database',cmd:'python start.py --reset'},
+        {label:'Custom port',cmd:'python start.py --port 9000'},
+        {label:'Docker (PostgreSQL + Nginx)',cmd:'docker-compose up -d'},
+      ].map(({label,cmd})=><div key={cmd} style={{marginBottom:8}}><div style={{fontSize:11,color:'var(--t2)',marginBottom:2}}>{label}</div><div style={{background:'var(--s2)',borderRadius:'var(--r)',padding:'7px 12px',fontFamily:'var(--mono)',fontSize:12,color:'var(--ac)',display:'flex',justifyContent:'space-between',alignItems:'center',cursor:'pointer'}} onClick={()=>{navigator.clipboard?.writeText(cmd);toast('Copied!','success');}}>$ {cmd}<span style={{fontSize:10,color:'var(--t3)'}}>copy</span></div></div>)}
+    </div>
+
+    <div className="card">
+      <div style={{fontFamily:'var(--mono)',fontSize:11,fontWeight:700,letterSpacing:'.08em',textTransform:'uppercase',color:'var(--t2)',marginBottom:10}}>About</div>
+      <div style={{fontFamily:'var(--mono)',fontSize:12,color:'var(--t2)',lineHeight:1.8}}>
+        <div>AKRS <strong style={{color:'var(--ac)'}}>v3</strong></div>
+        <div>Storage: LOCAL · GITHUB · DRIVE</div>
+        <div>Database: SQLite (PC) / PostgreSQL (prod)</div>
+        <div>AI: Anthropic Claude / OpenAI GPT / Static</div>
+      </div>
+    </div>
+  </div>);
+}
+
+// ── ROOT APP ──────────────────────────────────────────────────────────────────
+function App(){
+  const[page,sPage]=useState('dashboard');const[pageData,sPageData]=useState(null);
+  const[docs,setDocs]=useState(DEMO_DOCS);const[files,setFiles]=useState(DEMO_FILES);
+  const[folders,setFolders]=useState(DEMO_FOLDERS);
+  const[storageConfig,setStorageConfig]=useState(DEMO_STORAGE);
+  const[theme,setTheme]=useLS('akrs-theme','dark');
+  const[apiBase,setApiBase]=useLS('akrs-api','http://localhost:8000/api/v1');
+  const[cmd,sCmd]=useState(false);const[sidebar,sSidebar]=useState(true);
+  const[exportOpen,sExport]=useState(false);
+  const{toasts,toast}=useToast();
+
+  useEffect(()=>{document.documentElement.setAttribute('data-theme',theme);},[theme]);
+
+  useEffect(()=>{const hk=e=>{if((e.metaKey||e.ctrlKey)&&e.key==='k'){e.preventDefault();sCmd(c=>!c);}if(e.key==='Escape')sCmd(false);};document.addEventListener('keydown',hk);return()=>document.removeEventListener('keydown',hk);},[]);
+
+  const nav=(pg,data=null)=>{sPage(pg);sPageData(data);};
+
+  const pages=[
+    {id:'dashboard',icon:'⌂',label:'Dashboard'},
+    {id:'search',icon:'⌕',label:'Search'},
+    {id:'docs',icon:'◧',label:'Documents'},
+    {id:'files',icon:'▣',label:'Files'},
+    {id:'folders',icon:'◈',label:'Folders'},
+    {id:'analytics',icon:'↗',label:'Analytics'},
+    null,
+    {id:'storage',icon:'⊞',label:'Storage'},
+    {id:'settings',icon:'◉',label:'Settings'},
+  ];
+
+  const fDocs=useMemo(()=>docs.filter(d=>d.is_active&&d.folder_ids?.length>0).reduce((acc,d)=>{d.folder_ids.forEach(fid=>{acc[fid]=(acc[fid]||0)+1;});return acc;},{}),[docs]);
+
+  return(<div className="shell">
+    <div className="toast-container">{toasts.map(t=><div key={t.id} className={`toast ${t.type}`}>{t.type==='success'?'✓':t.type==='error'?'✗':t.type==='warn'?'⚠':'ℹ'}{t.msg}</div>)}</div>
+    {cmd&&<CmdPalette onClose={()=>sCmd(false)} onNav={nav} docs={docs}/>}
+    {exportOpen&&<ExportModal docs={docs} onClose={()=>sExport(false)} toast={toast}/>}
+
+    {/* Icon rail */}
+    <div className="rail">
+      <div className="rail-logo" onClick={()=>sPage('dashboard')} title="AKRS v3">v3</div>
+      {pages.map((p,i)=>p===null?<div key={i} className="rail-sep"/>:<div key={p.id} className={`ri${page===p.id?' on':''}`} onClick={()=>nav(p.id)} title={p.label}>{p.icon}<span className="tip">{p.label}</span></div>)}
+      <div style={{flex:1}}/>
+      <div className="ri" onClick={()=>sCmd(true)} title="Command palette (⌘K)">⌘<span className="tip">⌘K Command palette</span></div>
+    </div>
+
+    {/* Sidebar */}
+    <div className={`sidebar${sidebar?'':' collapsed'}`}>
+      <div className="sb-head" style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+        <span className="sb-title">AKRS</span>
+        <button className="btn btn-ghost btn-xs" onClick={()=>sSidebar(false)} style={{padding:'2px 5px',fontSize:14}}>‹</button>
+      </div>
+      <div className="sb-list">
+        {pages.filter(Boolean).map(p=><div key={p.id} className={`sbi${page===p.id?' on':''}`} onClick={()=>nav(p.id)}><span style={{fontSize:15,minWidth:18,textAlign:'center'}}>{p.icon}</span><span>{p.label}</span></div>)}
+        <div className="sb-sec">Folders</div>
+        {folders.map(f=><div key={f.id} className="sbi" onClick={()=>nav('docs')}><div className="fdot" style={{background:f.color}}/><span style={{flex:1,fontSize:12}}>{f.name}</span><span className="badge">{fDocs[f.id]||0}</span></div>)}
+        <div style={{height:16}}/>
+        <div className="sbi" onClick={()=>sExport(true)}><span style={{fontSize:15,minWidth:18,textAlign:'center'}}>⬇</span>Export Data</div>
+      </div>
+      {/* Storage mini-indicator */}
+      <div style={{padding:'10px 12px',borderTop:'1px solid var(--b0)'}}>
+        <div style={{fontSize:9,fontFamily:'var(--mono)',fontWeight:700,letterSpacing:'.1em',textTransform:'uppercase',color:'var(--t3)',marginBottom:5}}>Storage</div>
+        <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
+          {[{k:'local',ico:'💾'},{k:'github',ico:'🐙'},{k:'drive',ico:'☁️'}].map(b=>{const on=storageConfig.active_backends.includes(b.k);return(<div key={b.k} style={{display:'flex',alignItems:'center',gap:3,padding:'2px 6px',borderRadius:3,background:on?'var(--gnd)':'var(--s3)',cursor:'pointer',transition:'background .1s'}} onClick={()=>nav('storage')} title={`${b.k} storage: ${on?'ON':'OFF'}`}>
+            <div className={`sdot${on?' on':' off'}`}/><span style={{fontSize:10,fontFamily:'var(--mono)',color:on?'var(--gn)':'var(--t3)'}}>{b.ico}</span>
+          </div>);})}
+        </div>
+      </div>
+    </div>
+
+    {/* Expand sidebar button */}
+    {!sidebar&&<div style={{position:'absolute',left:56,top:0,zIndex:30,height:'100%',display:'flex',alignItems:'flex-start',paddingTop:12}}>
+      <button className="btn btn-ghost btn-xs" onClick={()=>sSidebar(true)} style={{borderRadius:'0 4px 4px 0',padding:'4px 5px',fontSize:13,background:'var(--s1)',borderLeft:'none'}}>›</button>
+    </div>}
+
+    {/* Main area */}
+    <div className="main">
+      {page==='dashboard'&&<DashboardPage docs={docs} files={files} folders={folders} setPage={nav} onNewDoc={()=>nav('docs',{})} storageConfig={storageConfig}/>}
+      {page==='search'&&<SearchPage docs={docs} files={files} folders={folders} toast={toast}/>}
+      {page==='docs'&&<DocsPage folders={folders} docs={docs} setDocs={setDocs} toast={toast} initialDoc={pageData}/>}
+      {page==='files'&&<FilesPage files={files} setFiles={setFiles} folders={folders} toast={toast} storageConfig={storageConfig}/>}
+      {page==='folders'&&<FoldersPage folders={folders} setFolders={setFolders} docs={docs} files={files} toast={toast}/>}
+      {page==='analytics'&&<AnalyticsPage docs={docs} files={files}/>}
+      {page==='storage'&&<StoragePage storageConfig={storageConfig} setStorageConfig={setStorageConfig} toast={toast} docs={docs} files={files}/>}
+      {page==='settings'&&<SettingsPage theme={theme} setTheme={setTheme} apiBase={apiBase} setApiBase={setApiBase} toast={toast}/>}
+    </div>
+  </div>);
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
